@@ -1,0 +1,21 @@
+{
+  "fmt": {
+    "lineWidth": 160,
+    "singleQuote": true,
+    "useBraces": "preferNone"
+  },
+  "imports": {
+    "@/": "./",
+    "@std/assert": "jsr:@std/assert@1",
+    "async-mutex": "npm:async-mutex@^0.5.0"
+  },
+  "lint": {
+    "rules": {
+      "include": ["no-console"],
+      "tags": ["recommended", "workspace", "fresh"]
+    }
+  },
+  "tasks": {
+    "dev": "deno run --watch main.ts"
+  }
+}
