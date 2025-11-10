@@ -1,0 +1,25 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+export function parseArgs(importMetaUrl: string) {
+  const parsed = {
+    fileName: 'input.txt',
+    logLevel: 0,
+    part: 0,
+  };
+  const raw = [...Deno.args];
+  while (raw.length) {
+    const key = raw.shift();
+    if (typeof key === 'undefined') break;
+    if (!['-f', '-l', '-p'].includes(key)) throw new Error(`unknown arg ${key}`);
+    const val = raw.shift();
+    if (typeof val === 'undefined') throw new Error(`missing value for arg ${key}`);
+    if (key === '-f') parsed.fileName = `${val.replace(/\.txt$/, '')}.txt`;
+    if (key === '-l') parsed.logLevel = parseInt(val);
+    if (key === '-p') parsed.part = parseInt(val);
+  }
+  const filePath = join(dirname(fileURLToPath(importMetaUrl)), parsed.fileName);
+  const data = readFileSync(filePath, { encoding: 'utf-8' });
+  return { ...parsed, data };
+}

@@ -1,6 +1,9 @@
 import { Console } from 'node:console';
-import { relative } from 'node:path';
+import { relative, sep } from 'node:path';
 import { cwd, stderr, stdout } from 'node:process';
+import { fileURLToPath } from 'node:url';
+
+const MAX_PATH_DEPTH = 3;
 
 const ansiStyles = {
   blue: '\x1b[34m',
@@ -26,7 +29,7 @@ type LevelName = keyof typeof levelData;
 
 const console = new Console({
   colorMode: true,
-  inspectOptions: { breakLength: 500, depth: 10 },
+  inspectOptions: { breakLength: 500, depth: 10, maxStringLength: 100, numericSeparator: true, sorted: true },
   stderr,
   stdout,
 });
@@ -43,9 +46,9 @@ export class Logger {
     }.${now.getMilliseconds().toString().padStart(3, '0')} ${levelName} ${this.#name}]${ansiStyles.reset}`;
     console[method](prefix, ...message);
   }
-  constructor(importMetaUrl: string, name: string, level: LevelName = 'Debug:High') {
-    this.#name = `${relative(cwd(), importMetaUrl.replace('file://', ''))}:${name}`;
-    this.#levelValue = levelData[level].value;
+  constructor(importMetaUrl: string, name: string, { logLevel = 'Debug:High' }: { logLevel?: LevelName | number } = {}) {
+    this.#name = `${relative(cwd(), fileURLToPath(importMetaUrl)).split(sep).slice(-MAX_PATH_DEPTH).join(sep)}:${name}`;
+    this.#levelValue = (typeof logLevel === 'number') ? this.#levelValue = logLevel : levelData[logLevel].value;
   }
   public debugHigh(...message: unknown[]) {
     this.#log('Debug:High', ...message);
@@ -68,7 +71,7 @@ export class Logger {
   public error(...message: unknown[]) {
     this.#log('Error', ...message);
   }
-  public setLevel(level: LevelName) {
-    this.#levelValue = levelData[level].value;
+  public setLevel(logLevel: LevelName | number) {
+    this.#levelValue = (typeof logLevel === 'number') ? this.#levelValue = logLevel : levelData[logLevel].value;
   }
 }

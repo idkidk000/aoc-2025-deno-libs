@@ -1,21 +1,7 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@std/assert@1": "1.0.15",
-    "jsr:@std/internal@^1.0.12": "1.0.12",
-    "npm:@types/node@*": "24.2.0",
-    "npm:async-mutex@0.5": "0.5.0"
-  },
-  "jsr": {
-    "@std/assert@1.0.15": {
-      "integrity": "d64018e951dbdfab9777335ecdb000c0b4e3df036984083be219ce5941e4703b",
-      "dependencies": [
-        "jsr:@std/internal"
-      ]
-    },
-    "@std/internal@1.0.12": {
-      "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
-    }
+    "npm:@types/node@*": "24.2.0"
   },
   "npm": {
     "@types/node@24.2.0": {
@@ -24,23 +10,8 @@
         "undici-types"
       ]
     },
-    "async-mutex@0.5.0": {
-      "integrity": "sha512-1A94B18jkJ3DYq284ohPxoXbfTA5HsQ7/Mf4DEhcyLx3Bz27Rh59iScbB6EPiP+B+joue6YCxcMXSbFC1tZKwA==",
-      "dependencies": [
-        "tslib"
-      ]
-    },
-    "tslib@2.8.1": {
-      "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="
-    },
     "undici-types@7.10.0": {
       "integrity": "sha512-t5Fy/nfn+14LuOc2KNYg75vZqClpAiqscVvMygNnlsHBFpSXdJaYtXMcdNLpl/Qvc3P2cB3s6lOV51nqsFq4ag=="
     }
-  },
-  "workspace": {
-    "dependencies": [
-      "jsr:@std/assert@1",
-      "npm:async-mutex@0.5"
-    ]
   }
 }
