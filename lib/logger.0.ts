@@ -29,7 +29,7 @@ type LevelName = keyof typeof levelData;
 
 const console = new Console({
   colorMode: true,
-  inspectOptions: { breakLength: 500, depth: 10, maxStringLength: 100, numericSeparator: true, sorted: true },
+  inspectOptions: { breakLength: 500, depth: 10, maxStringLength: 100, numericSeparator: true, sorted: false },
   stderr,
   stdout,
 });
