@@ -21,5 +21,5 @@ export function parseArgs(importMetaUrl: string) {
   }
   const filePath = join(dirname(fileURLToPath(importMetaUrl)), parsed.fileName);
   const data = readFileSync(filePath, { encoding: 'utf-8' });
-  return { ...parsed, data };
+  return { ...parsed, data, part1: parsed.part !== 2, part2: parsed.part !== 1 };
 }
