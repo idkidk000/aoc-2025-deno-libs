@@ -1,5 +1,7 @@
 import { inspect } from 'node:util';
 
+// BUG: y=0 is bottom row, not top. probably should just have r/c and x/y methods
+
 export class Grid<Cell> {
   #data: Cell[];
   #rows: number;

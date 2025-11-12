@@ -19,7 +19,7 @@ type LevelName = keyof typeof levels;
 
 const console = new Console({
   colorMode: true,
-  inspectOptions: { breakLength: 500, depth: 10, maxStringLength: 100, numericSeparator: true, sorted: false },
+  inspectOptions: { breakLength: 300, depth: 10, maxStringLength: 150, numericSeparator: true, sorted: false },
   stderr,
   stdout,
 });

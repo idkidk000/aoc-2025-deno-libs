@@ -1,8 +1,7 @@
 export class HashMap<Key, Value, Hash extends string | number | bigint> {
   #map: Map<Hash, { key: Key; value: Value }>;
-  constructor(public hasher: (key: Key) => Hash, iterable?: Iterable<[Key, Value]>) {
-    if (iterable) this.#map = new Map<Hash, { key: Key; value: Value }>([...iterable].map(([key, value]) => [hasher(key), { key, value }]));
-    else this.#map = new Map<Hash, { key: Key; value: Value }>();
+  constructor(public readonly hasher: (key: Key) => Hash, iterable?: Iterable<[Key, Value]>) {
+    this.#map = new Map<Hash, { key: Key; value: Value }>(iterable ? [...iterable].map(([key, value]) => [hasher(key), { key, value }]) : null);
   }
   public clear() {
     return this.#map.clear();
@@ -14,7 +13,7 @@ export class HashMap<Key, Value, Hash extends string | number | bigint> {
     return this.#map.values().map(({ key, value }) => [key, value]);
   }
   public forEach(callback: (value: Value, key: Key, hashmap: HashMap<Key, Value, Hash>) => void) {
-    this.#map.values().forEach(({ key, value }) => callback(value, key, this));
+    return this.#map.values().forEach(({ key, value }) => callback(value, key, this));
   }
   public get(key: Key) {
     return this.#map.get(this.hasher(key))?.value;
@@ -34,5 +33,8 @@ export class HashMap<Key, Value, Hash extends string | number | bigint> {
   }
   public values(): IteratorObject<Value> {
     return this.#map.values().map(({ value }) => value);
+  }
+  public get internal() {
+    return this.#map;
   }
 }
