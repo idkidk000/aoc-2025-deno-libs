@@ -16,7 +16,7 @@ export class Grid<Cell> {
     }
   }
   public indexToXy(i: number) {
-    if (i<0 || i>=this.#data.length) throw new Error(`{i: ${i}} out of range. length=${this.#data.length}`)
+    if (i < 0 || i >= this.#data.length) throw new Error(`{i: ${i}} out of range. length=${this.#data.length}`);
     return { x: i % this.#cols, y: Math.floor(i / this.#cols) };
   }
   public xyToIndex(x: number, y: number) {
@@ -35,7 +35,7 @@ export class Grid<Cell> {
       const { x, y } = this.indexToXy(i);
       return predicate(value, x, y);
     });
-    if (index>-1) return { ...this.indexToXy(index), value: this.#data[index] };
+    if (index > -1) return { ...this.indexToXy(index), value: this.#data[index] };
   }
   public get rowCount() {
     return this.#rows;
@@ -54,6 +54,12 @@ export class Grid<Cell> {
   }
   [inspect.custom]() {
     const maxLength = Math.floor(Math.log10(this.#rows));
-    return `rows: ${this.#rows}, cols: ${this.#cols}\n${this.rows.map((row, i) => `${i.toString().padStart(maxLength, '0')}: ${row.map((cell)=>typeof cell==='object' && cell!==null && !(inspect.custom in cell) ? JSON.stringify(cell) : cell).join('')}`).join('\n')}`;
+    return `rows: ${this.#rows}, cols: ${this.#cols}\n${
+      this.rows.map((row, i) =>
+        `${i.toString().padStart(maxLength, '0')}: ${
+          row.map((cell) => typeof cell === 'object' && cell !== null && !(inspect.custom in cell) ? JSON.stringify(cell) : cell).join('')
+        }`
+      ).join('\n')
+    }`;
   }
 }

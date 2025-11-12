@@ -1,3 +1,4 @@
+import { ansiStyles } from '@/lib/misc.0.ts';
 import { Console } from 'node:console';
 import { relative, sep } from 'node:path';
 import { cwd, stderr, stdout } from 'node:process';
@@ -5,18 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const MAX_PATH_DEPTH = 3;
 
-const ansiStyles = {
-  blue: '\x1b[34m',
-  cyan: '\x1b[36m',
-  green: '\x1b[32m',
-  purple: '\x1b[35m',
-  red: '\x1b[31m',
-  yellow: '\x1b[33m',
-  bold: '\x1b[1m',
-  reset: '\x1b[0m',
-} as const;
-
-const levelData = {
+const levels = {
   'Debug:High': { colour: ansiStyles.blue, method: 'debug', value: 0 },
   'Debug:Med': { colour: ansiStyles.blue, method: 'debug', value: 1 },
   'Debug:Low': { colour: ansiStyles.blue, method: 'debug', value: 2 },
@@ -25,7 +15,7 @@ const levelData = {
   'Warn': { colour: ansiStyles.yellow, method: 'warn', value: 5 },
   'Error': { colour: ansiStyles.red, method: 'error', value: 6 },
 } as const;
-type LevelName = keyof typeof levelData;
+type LevelName = keyof typeof levels;
 
 const console = new Console({
   colorMode: true,
@@ -38,7 +28,7 @@ export class Logger {
   #name: string;
   #levelValue: number;
   #log(levelName: LevelName, ...message: unknown[]) {
-    const { colour, method, value } = levelData[levelName];
+    const { colour, method, value } = levels[levelName];
     if (value < this.#levelValue) return;
     const now = new Date();
     const prefix = `${ansiStyles.bold}${colour}[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${
@@ -48,7 +38,7 @@ export class Logger {
   }
   constructor(importMetaUrl: string, name: string, { logLevel = 'Debug:High' }: { logLevel?: LevelName | number } = {}) {
     this.#name = `${relative(cwd(), fileURLToPath(importMetaUrl)).split(sep).slice(-MAX_PATH_DEPTH).join(sep)}:${name}`;
-    this.#levelValue = (typeof logLevel === 'number') ? this.#levelValue = logLevel : levelData[logLevel].value;
+    this.#levelValue = (typeof logLevel === 'number') ? this.#levelValue = logLevel : levels[logLevel].value;
   }
   public debugHigh(...message: unknown[]) {
     this.#log('Debug:High', ...message);
@@ -72,6 +62,6 @@ export class Logger {
     this.#log('Error', ...message);
   }
   public setLevel(logLevel: LevelName | number) {
-    this.#levelValue = (typeof logLevel === 'number') ? this.#levelValue = logLevel : levelData[logLevel].value;
+    this.#levelValue = (typeof logLevel === 'number') ? this.#levelValue = logLevel : levels[logLevel].value;
   }
 }

@@ -7,7 +7,7 @@ function part1(data: string, logger: Logger) {
   // const grid = new Grid({ rows: 3, cols: 4, fill: 1 });
   // const grid=new Grid(data.split('\n').map((line)=>line.split('')))
   // const grid = new Grid({ rows: 3, cols: 5, fill: (x: number, y: number) => (x + y) % 10 });
-  const grid = new Grid({ rows: 3, cols: 5, fill: (x: number, y: number) => ({x,y}) });
+  const grid = new Grid({ rows: 3, cols: 5, fill: (x: number, y: number) => ({ x, y }) });
   logger.debugLow(grid);
   logger.debugLow('counts', grid.rowCount, grid.colCount);
   logger.debugLow('getValue', grid.getValue(1, 2));
@@ -20,10 +20,9 @@ function part1(data: string, logger: Logger) {
   const find = grid.find((value) => value.x === 4);
   logger.debugLow({ find });
 
-  const v0=new Vec2(3,5)
-  const v1=new Vec2(-1,4)
-  logger.debugLow({v0,v1,add:v0.add(v1),sub:v0.sub(v1),mult:v0.mult(v1)})
-
+  const v0 = new Vec2(3, 5);
+  const v1 = new Vec2(-1, 4);
+  logger.debugLow({ v0, v1, add: v0.add(v1), sub: v0.sub(v1), mult: v0.mult(v1) });
 }
 
 function part2(data: string, logger: Logger) {
