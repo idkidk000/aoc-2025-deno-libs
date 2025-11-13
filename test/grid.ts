@@ -1,7 +1,7 @@
 import { Grid } from '@/lib/grid.0.ts';
 import { Logger } from '@/lib/logger.0.ts';
 
-const logger = new Logger(import.meta.url, 'main');
+const logger = new Logger(import.meta.url);
 // const rows = 3;
 // const cols = 5;
 

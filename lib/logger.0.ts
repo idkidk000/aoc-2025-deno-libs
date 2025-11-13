@@ -38,8 +38,8 @@ export class Logger {
     }.${now.getMilliseconds().toString().padStart(3, '0')} ${levelName} ${this.#name}]${ansiStyles.reset}`;
     console[method](prefix, ...message);
   }
-  constructor(importMetaUrl: string, name: string, { logLevel = 'Debug:High' }: { logLevel?: LevelName | number } = {}) {
-    this.#name = `${relative(cwd(), fileURLToPath(importMetaUrl)).split(sep).slice(-MAX_PATH_DEPTH).join(sep)}:${name}`;
+  constructor(importMetaUrl: string, name?: string, { logLevel = 'Debug:High' }: { logLevel?: LevelName | number } = {}) {
+    this.#name = `${relative(cwd(), fileURLToPath(importMetaUrl)).split(sep).slice(-MAX_PATH_DEPTH).join(sep)}:${name ?? 'main'}`;
     this.#levelValue = (typeof logLevel === 'number') ? this.#levelValue = logLevel : levels[logLevel].value;
   }
   public debugHigh(...message: unknown[]) {

@@ -1,7 +1,7 @@
 import { Logger } from '@/lib/logger.0.ts';
-import { Point2 } from '@/lib/point2.0.ts';
+import { Point2D } from '@/lib/point2.0.ts';
 
-const logger = new Logger(import.meta.url, 'main');
+const logger = new Logger(import.meta.url);
 
 const results: Record<'int' | 'big' | 'safe' | 'fast', { times: Record<'pack' | 'unpack', number[]>; fail: boolean }> = {
   int: { times: { pack: [], unpack: [] }, fail: false },
@@ -10,20 +10,20 @@ const results: Record<'int' | 'big' | 'safe' | 'fast', { times: Record<'pack' | 
   fast: { times: { pack: [], unpack: [] }, fail: false },
 };
 for (let run = 0; run < 10; ++run) {
-  const points = Array.from({ length: 1_000_000 }, () => new Point2(Math.round((Math.random() * 100) - 50), Math.round((Math.random() * 100) - 50)));
-  const bounds = Point2.getBounds(points);
-  const utils = Point2.makeUtils(bounds);
+  const points = Array.from({ length: 1_000_000 }, () => new Point2D(Math.round((Math.random() * 100) - 50), Math.round((Math.random() * 100) - 50)));
+  const bounds = Point2D.getBounds(points);
+  const utils = Point2D.makeUtils(bounds);
 
   // int
-  const intPackStart = Date.now();
+  const intPackStart = performance.now();
   const intPacked = points.map(utils.packInt);
-  const intPackTime = Date.now() - intPackStart;
+  const intPackTime = performance.now() - intPackStart;
   results.int.times.pack.push(intPackTime);
   logger.info('intPack', { i: run }, intPackTime.toLocaleString(), 'ms');
 
-  const intUnpackStart = Date.now();
+  const intUnpackStart = performance.now();
   const intUnpacked = intPacked.map(utils.unpackInt);
-  const intUnpackTime = Date.now() - intUnpackStart;
+  const intUnpackTime = performance.now() - intUnpackStart;
   results.int.times.unpack.push(intUnpackTime);
   logger.info('intUnpack', { i: run }, intUnpackTime.toLocaleString(), 'ms');
 
@@ -32,15 +32,15 @@ for (let run = 0; run < 10; ++run) {
   results.int.fail ||= intFail;
 
   // bigint
-  const bigPackStart = Date.now();
+  const bigPackStart = performance.now();
   const bigPacked = points.map(utils.packBigInt);
-  const bigPackTime = Date.now() - bigPackStart;
+  const bigPackTime = performance.now() - bigPackStart;
   results.big.times.pack.push(bigPackTime);
   logger.info('bigPack', { i: run }, bigPackTime.toLocaleString(), 'ms');
 
-  const bigUnpackStart = Date.now();
+  const bigUnpackStart = performance.now();
   const bigUnpacked = bigPacked.map(utils.unpackBigInt);
-  const bigUnpackTime = Date.now() - bigUnpackStart;
+  const bigUnpackTime = performance.now() - bigUnpackStart;
   results.big.times.unpack.push(bigUnpackTime);
   logger.info('bigUnpack', { i: run }, bigPackTime.toLocaleString(), 'ms');
 
@@ -49,15 +49,15 @@ for (let run = 0; run < 10; ++run) {
   results.big.fail ||= bigFail;
 
   // safe
-  const safePackStart = Date.now();
-  const safePacked = points.map(Point2.safePack);
-  const safePackTime = Date.now() - safePackStart;
+  const safePackStart = performance.now();
+  const safePacked = points.map(Point2D.safePack);
+  const safePackTime = performance.now() - safePackStart;
   results.safe.times.pack.push(safePackTime);
   logger.info('safePack', { i: run }, safePackTime.toLocaleString(), 'ms');
 
-  const safeUnpackStart = Date.now();
-  const safeUnpacked = safePacked.map(Point2.safeUnpack);
-  const safeUnpackTime = Date.now() - safeUnpackStart;
+  const safeUnpackStart = performance.now();
+  const safeUnpacked = safePacked.map(Point2D.safeUnpack);
+  const safeUnpackTime = performance.now() - safeUnpackStart;
   results.safe.times.unpack.push(safeUnpackTime);
   logger.info('safeUnpack', { i: run }, safeUnpackTime.toLocaleString(), 'ms');
 
@@ -66,15 +66,15 @@ for (let run = 0; run < 10; ++run) {
   results.safe.fail ||= safeFail;
 
   // fast
-  const fastPackStart = Date.now();
-  const fastPacked = points.map(Point2.fastPack);
-  const fastPackTime = Date.now() - fastPackStart;
+  const fastPackStart = performance.now();
+  const fastPacked = points.map(Point2D.fastPack);
+  const fastPackTime = performance.now() - fastPackStart;
   results.fast.times.pack.push(fastPackTime);
   logger.info('fastPack', { i: run }, fastPackTime.toLocaleString(), 'ms');
 
-  const fastUnpackStart = Date.now();
-  const fastUnpacked = fastPacked.map(Point2.fastUnpack);
-  const fastUnpackTime = Date.now() - fastUnpackStart;
+  const fastUnpackStart = performance.now();
+  const fastUnpacked = fastPacked.map(Point2D.fastUnpack);
+  const fastUnpackTime = performance.now() - fastUnpackStart;
   results.fast.times.unpack.push(fastUnpackTime);
   logger.info('fastUnpack', { i: run }, fastUnpackTime.toLocaleString(), 'ms');
 

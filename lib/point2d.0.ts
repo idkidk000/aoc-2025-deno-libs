@@ -7,44 +7,47 @@ const OFFSETS_8 = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [
 const float64Array = new Float64Array(2);
 const bigUint64Array = new BigUint64Array(float64Array.buffer);
 
-export class Point2 {
+export class Point2D {
   constructor(public x: number, public y: number) {}
-  public add(other: Point2) {
-    return new Point2(this.x + other.x, this.y + other.y);
+  public add(other: Point2D) {
+    return new Point2D(this.x + other.x, this.y + other.y);
   }
-  public sub(other: Point2) {
-    return new Point2(this.x - other.x, this.y - other.y);
+  public sub(other: Point2D) {
+    return new Point2D(this.x - other.x, this.y - other.y);
   }
-  public mult(other: Point2): Point2;
-  public mult(value: number): Point2;
-  public mult(other: Point2 | number) {
-    return other instanceof Point2 ? new Point2(this.x * other.x, this.y * other.y) : new Point2(this.x * other, this.y * other);
+  public mult(other: Point2D): Point2D;
+  public mult(value: number): Point2D;
+  public mult(other: Point2D | number) {
+    return other instanceof Point2D ? new Point2D(this.x * other.x, this.y * other.y) : new Point2D(this.x * other, this.y * other);
   }
-  public eq(other: Point2) {
+  public eq(other: Point2D) {
     return this.x === other.x && this.y === other.y;
   }
   /** Sum of squared x and y distances */
-  public dist2(other: Point2) {
+  public dist2(other: Point2D) {
     return (this.x - other.x) ** 2 + (this.y - other.y) ** 2;
   }
-  public dist(other: Point2) {
+  public dist(other: Point2D) {
     return Math.sqrt(this.dist2(other));
   }
   /** Sum of x and y distances */
-  public manhattan(other: Point2) {
+  public manhattan(other: Point2D) {
     return Math.abs(this.x - other.x) + Math.abs(this.y - other.y);
   }
   /** Max of x and y distances */
-  public chebyshev(other: Point2) {
+  public chebyshev(other: Point2D) {
     return Math.max(Math.abs(this.x - other.x), Math.abs(this.x - other.x));
   }
+  public get xy(){
+    return {x:this.x,y:this.y}
+  }
   public static get offsets4() {
-    return OFFSETS_4.map(([x, y]) => new Point2(x, y));
+    return OFFSETS_4.map(([x, y]) => new Point2D(x, y));
   }
   public static get offsets8() {
-    return OFFSETS_8.map(([x, y]) => new Point2(x, y));
+    return OFFSETS_8.map(([x, y]) => new Point2D(x, y));
   }
-  public static getBounds(iterable: Iterable<Point2>) {
+  public static getBounds(iterable: Iterable<Point2D>) {
     const items = [...iterable];
     return items.length
       ? items.reduce(
@@ -65,7 +68,7 @@ export class Point2 {
     // shifting and masking by 0 is fine when all ys are the same value
     const widthY = BigInt(Math.ceil(Math.log2(rangeY)));
     const maskY = (1n << widthY) - 1n;
-    function inBounds(value: Point2) {
+    function inBounds(value: Point2D) {
       return value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY;
     }
     return {
@@ -76,14 +79,14 @@ export class Point2 {
        *
        *  Throws on out-of-bounds
        */
-      packInt(value: Point2) {
+      packInt(value: Point2D) {
         if (!inBounds(value)) throw new Error('cannot pack an out-of-bounds value');
         return (value.x - minX) * safeRangeY + (value.y - minY);
       },
       /** Throws on `value` > `Number.MAX_SAFE_INTEGER` */
       unpackInt(value: number) {
         if (value > Number.MAX_SAFE_INTEGER) throw new Error(`overflow: ${value} > Number.MAX_SAFE_INTEGER and cannot be unpacked`);
-        return new Point2(Math.floor(value / safeRangeY) + minX, (value % safeRangeY) + minY);
+        return new Point2D(Math.floor(value / safeRangeY) + minX, (value % safeRangeY) + minY);
       },
       /** `value` **must** contain integer coordinates
        *
@@ -93,25 +96,25 @@ export class Point2 {
        *
        * @returns bigint of minimum width
        */
-      packBigInt(value: Point2) {
+      packBigInt(value: Point2D) {
         if (!inBounds(value)) throw new Error('cannot pack an out-of-bounds value');
         return (BigInt(value.x - minX) << widthY) | (BigInt(value.y - minY));
       },
       unpackBigInt(value: bigint) {
-        return new Point2(Number(value >> widthY) + minX, Number(value & maskY) + minY);
+        return new Point2D(Number(value >> widthY) + minX, Number(value & maskY) + minY);
       },
     };
   }
   /** Read x and y's binary representation as 64bit ints and smush together. Handles floats and large values. Accurate but slow due to buffer allocations
    * @returns (typepunned x width + 64) bit bigint
    */
-  public static safePack(value: Point2) {
+  public static safePack(value: Point2D) {
     const [x, y] = new BigUint64Array(new Float64Array([value.x, value.y]).buffer);
     return (x << 64n) | y;
   }
   public static safeUnpack(value: bigint) {
     const [x, y] = new Float64Array(new BigUint64Array([value >> 64n, value & ((1n << 64n) - 1n)]).buffer);
-    return new Point2(x, y);
+    return new Point2D(x, y);
   }
   /** Same as `safePack`, but using shared buffers
    *
@@ -120,7 +123,7 @@ export class Point2 {
    * `packBigInt` is about the same speed but can produce smaller return values, but `unpackBigInt` is slower than `fastUnpack`
    *
    * **not async safe** */
-  public static fastPack(value: Point2) {
+  public static fastPack(value: Point2D) {
     // use the preallocated array buffers
     float64Array[0] = value.x;
     float64Array[1] = value.y;
@@ -137,6 +140,6 @@ export class Point2 {
     bigUint64Array[0] = value >> 64n;
     bigUint64Array[1] = value & ((1n << 64n) - 1n);
     const [x, y] = float64Array;
-    return new Point2(x, y);
+    return new Point2D(x, y);
   }
 }

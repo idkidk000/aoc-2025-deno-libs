@@ -1,7 +1,7 @@
 import { Deque } from '@/lib/deque.0.ts';
 import { Logger } from '@/lib/logger.0.ts';
 
-const logger = new Logger(import.meta.url, 'main');
+const logger = new Logger(import.meta.url);
 
 const deque = new Deque(10);
 logger.info(deque);
