@@ -2,6 +2,7 @@
   "fmt": {
     "lineWidth": 160,
     "singleQuote": true,
+    "trailingCommas": "onlyMultiLine",
     "useBraces": "preferNone"
   },
   "imports": {

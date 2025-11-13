@@ -1,0 +1,44 @@
+import { Deque } from '@/lib/deque.0.ts';
+import { Logger } from '@/lib/logger.0.ts';
+
+const logger = new Logger(import.meta.url, 'main');
+
+const deque = new Deque(10);
+logger.info(deque);
+deque.pushBack('1', '2', '3');
+logger.info(deque);
+deque.pushBack('4', '5');
+logger.info(deque);
+// let item = deque.popBack();
+// logger.info(item);
+// logger.info(deque);
+// item = deque.popBack();
+// logger.info(item);
+// logger.info(deque);
+// deque.pushBack('6', '7', '8', '9');
+// logger.info(deque);
+// deque.pushBack('0');
+// logger.info(deque);
+// // deque = new Deque(['a', 'b', 'c', 'd']);
+// // logger.info(deque);
+
+deque.pushFront('f', 'r');
+logger.info(deque);
+deque.pushBack('6', '7');
+logger.info(deque);
+deque.pushFront('o');
+logger.info(deque);
+// deque.pushFront('n');
+// logger.info(deque);
+let item = deque.popFront();
+logger.info(item, deque);
+item = deque.popFront();
+logger.info(item, deque);
+item = deque.popFront();
+logger.info(item, deque);
+deque.pushFront('a', 'b', 'c');
+logger.info(deque);
+deque.pushFront('d', 'e', 'f');
+logger.info(deque);
+item = deque.popFront();
+logger.info(item, deque);

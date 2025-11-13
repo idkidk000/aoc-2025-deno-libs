@@ -1,4 +1,7 @@
-export class HashMap<Key, Value, Hash extends string | number | bigint> {
+// DONE
+
+/** Wrapper around Map which stores the original key as part of the Map's value, so there is no unpacking overhead */
+export class HashedMap<Key, Value, Hash extends string | number | bigint> {
   #map: Map<Hash, { key: Key; value: Value }>;
   constructor(public readonly hasher: (key: Key) => Hash, iterable?: Iterable<[Key, Value]>) {
     this.#map = new Map<Hash, { key: Key; value: Value }>(iterable ? [...iterable].map(([key, value]) => [hasher(key), { key, value }]) : null);
@@ -12,7 +15,7 @@ export class HashMap<Key, Value, Hash extends string | number | bigint> {
   public entries(): IteratorObject<[Key, Value]> {
     return this.#map.values().map(({ key, value }) => [key, value]);
   }
-  public forEach(callback: (value: Value, key: Key, hashmap: HashMap<Key, Value, Hash>) => void) {
+  public forEach(callback: (value: Value, key: Key, HashedMap: HashedMap<Key, Value, Hash>) => void) {
     return this.#map.values().forEach(({ key, value }) => callback(value, key, this));
   }
   public get(key: Key) {

@@ -1,5 +1,11 @@
+// DONE
+
 const OFFSETS_4 = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 const OFFSETS_8 = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
+
+// these both refer to the same area in memory. preallocating and reusing is significantly faster than allocating and discarding on each call, but it's not async safe
+const float64Array = new Float64Array(2);
+const bigUint64Array = new BigUint64Array(float64Array.buffer);
 
 export class Point2 {
   constructor(public x: number, public y: number) {}
@@ -82,6 +88,9 @@ export class Point2 {
       /** `value` **must** contain integer coordinates
        *
        * Throws on out-of-bounds
+       *
+       * Similar performance to `safePack`, but can produce smaller return values
+       *
        * @returns bigint of minimum width
        */
       packBigInt(value: Point2) {
@@ -93,18 +102,41 @@ export class Point2 {
       },
     };
   }
-  // FIXME: currently this is 10x slower than packBigInt, which is 2x slower than packInt
-  // can probably instantiate the arrays once since they'll then both refer to the same area of memory
-  /** read x and y from `Number` (`Float64`) as `BigUint64` via type punning to preserve precision, then bitshift into a 128 bit BigInt
-   *
-   * @returns 128-bit wide bigint
+  /** Read x and y's binary representation as 64bit ints and smush together. Handles floats and large values. Accurate but slow due to buffer allocations
+   * @returns (typepunned x width + 64) bit bigint
    */
-  public static pack(value: Point2) {
-    const [x, y] = new BigUint64Array(new Float64Array([value.x, value.y]).buffer)
-    return (x << 64n) | y
+  public static safePack(value: Point2) {
+    const [x, y] = new BigUint64Array(new Float64Array([value.x, value.y]).buffer);
+    return (x << 64n) | y;
   }
-  public static unpack(value: bigint) {
+  public static safeUnpack(value: bigint) {
     const [x, y] = new Float64Array(new BigUint64Array([value >> 64n, value & ((1n << 64n) - 1n)]).buffer);
+    return new Point2(x, y);
+  }
+  /** Same as `safePack`, but using shared buffers
+   *
+   * `packInt` is faster and produces much smaller return values for small integers
+   *
+   * `packBigInt` is about the same speed but can produce smaller return values, but `unpackBigInt` is slower than `fastUnpack`
+   *
+   * **not async safe** */
+  public static fastPack(value: Point2) {
+    // use the preallocated array buffers
+    float64Array[0] = value.x;
+    float64Array[1] = value.y;
+    const [x, y] = bigUint64Array;
+    return (x << 64n) | y;
+  }
+  /** Same as `safeUnpack`, but using shared buffers
+   *
+   * Only `unpackInt` is faster
+   *
+   *  **not async safe** */
+  public static fastUnpack(value: bigint) {
+    // use the preallocated array buffers
+    bigUint64Array[0] = value >> 64n;
+    bigUint64Array[1] = value & ((1n << 64n) - 1n);
+    const [x, y] = float64Array;
     return new Point2(x, y);
   }
 }

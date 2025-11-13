@@ -1,9 +1,8 @@
 import { parseArgs } from '@/lib/args.0.ts';
 import { Logger } from '@/lib/logger.0.ts';
 import { Point2 } from '@/lib/point2.0.ts';
-import { HashSet } from '../lib/hashset.0.ts';
 
-function part1(data: string, logger: Logger) {
+function part1(_data: string, logger: Logger) {
   /*   // const grid = new Grid({ rows: 3, cols: 4, fill: 1 });
   // const grid=new Grid(data.split('\n').map((line)=>line.split('')))
   // const grid = new Grid({ rows: 3, cols: 5, fill: (x: number, y: number) => (x + y) % 10 });
@@ -55,8 +54,8 @@ function part1(data: string, logger: Logger) {
     const y = (i - 1) ** 2;
     const points = Array.from({ length: 5 }, () =>
       new Point2(
-        (Math.random() * x  - (x / 2) ),
-        (Math.random() * y  - (y / 2) ),
+        Math.random() * x - (x / 2),
+        Math.random() * y - (y / 2),
       ));
     // const bounds = Point2.getBounds(points);
     // const utils = Point2.makeUtils(bounds);
@@ -67,8 +66,8 @@ function part1(data: string, logger: Logger) {
       // const packedBig = utils.packBigInt(point);
       // const unpackedBig = utils.unpackBigInt(packedBig);
       // const equalBig = unpackedBig.eq(point);
-      const packed = Point2.pack(point);
-      const unpacked = Point2.unpack(packed);
+      const packed = Point2.fastPack(point);
+      const unpacked = Point2.fastUnpack(packed);
       const equal = unpacked.eq(point);
       return {
         point,
@@ -83,79 +82,110 @@ function part1(data: string, logger: Logger) {
         equal,
       };
     });
-    const failed = mapped.filter(({  equal }) => !( equal));
+    const failed = mapped.filter(({ equal }) => !equal);
     // const maxVal = (bounds.maxX - bounds.minX) * (bounds.maxY - bounds.minY);
     // const overflow = maxVal > Number.MAX_SAFE_INTEGER;
     if (failed.length === 0) {
       count += mapped.length;
-      logger.debugLow(count,  );
+      logger.debugLow(count);
     } else {
-      logger.error( failed, );
+      logger.error(failed);
       throw new Error('unpacked not equal');
     }
   }
 }
 
-function part2(data: string, logger: Logger) {
-  const times:Record<'int'|'big'|'main',Record<'pack'|'unpack',number[]>>={
-    int:{pack:[],unpack:[]},
-    big:{pack:[],unpack:[]},
-    main:{pack:[],unpack:[]}
+function part2(_data: string, logger: Logger) {
+  const results: Record<'int' | 'big' | 'safe' | 'fast', { times: Record<'pack' | 'unpack', number[]>; pass: boolean }> = {
+    int: { times: { pack: [], unpack: [] }, pass: false },
+    big: { times: { pack: [], unpack: [] }, pass: false },
+    safe: { times: { pack: [], unpack: [] }, pass: false },
+    fast: { times: { pack: [], unpack: [] }, pass: false },
+  };
+  for (let run = 0; run < 10; ++run) {
+    const points = Array.from({ length: 1_000_000 }, () => new Point2(Math.round((Math.random() * 100) - 50), Math.round((Math.random() * 100) - 50)));
+    const bounds = Point2.getBounds(points);
+    const utils = Point2.makeUtils(bounds);
+
+    // int
+    const intPackStart = Date.now();
+    const intPacked = points.map(utils.packInt);
+    const intPackTime = Date.now() - intPackStart;
+    results.int.times.pack.push(intPackTime);
+    logger.info('intPack', { i: run }, intPackTime.toLocaleString(), 'ms');
+
+    const intUnpackStart = Date.now();
+    const intUnpacked = intPacked.map(utils.unpackInt);
+    const intUnpackTime = Date.now() - intUnpackStart;
+    results.int.times.unpack.push(intUnpackTime);
+    logger.info('intUnpack', { i: run }, intUnpackTime.toLocaleString(), 'ms');
+
+    const intPass = points.every((point, i) => intUnpacked[i].eq(point));
+    logger[intPass ? 'success' : 'error']({ intPass, i: run });
+    results.int.pass = intPass;
+
+    // bigint
+    const bigPackStart = Date.now();
+    const bigPacked = points.map(utils.packBigInt);
+    const bigPackTime = Date.now() - bigPackStart;
+    results.big.times.pack.push(bigPackTime);
+    logger.info('bigPack', { i: run }, bigPackTime.toLocaleString(), 'ms');
+
+    const bigUnpackStart = Date.now();
+    const bigUnpacked = bigPacked.map(utils.unpackBigInt);
+    const bigUnpackTime = Date.now() - bigUnpackStart;
+    results.big.times.unpack.push(bigUnpackTime);
+    logger.info('bigUnpack', { i: run }, bigPackTime.toLocaleString(), 'ms');
+
+    const bigPass = points.every((point, i) => bigUnpacked[i].eq(point));
+    logger[bigPass ? 'success' : 'error']({ bigPass, i: run });
+    results.big.pass = bigPass;
+
+    // safe
+    const safePackStart = Date.now();
+    const safePacked = points.map(Point2.safePack);
+    const safePackTime = Date.now() - safePackStart;
+    results.safe.times.pack.push(safePackTime);
+    logger.info('safePack', { i: run }, safePackTime.toLocaleString(), 'ms');
+
+    const safeUnpackStart = Date.now();
+    const safeUnpacked = safePacked.map(Point2.safeUnpack);
+    const safeUnpackTime = Date.now() - safeUnpackStart;
+    results.safe.times.unpack.push(safeUnpackTime);
+    logger.info('safeUnpack', { i: run }, safeUnpackTime.toLocaleString(), 'ms');
+
+    const safePass = points.every((point, i) => safeUnpacked[i].eq(point));
+    logger[safePass ? 'success' : 'error']({ safePass, i: run });
+    results.safe.pass = safePass;
+
+    // fast
+    const fastPackStart = Date.now();
+    const fastPacked = points.map(Point2.fastPack);
+    const fastPackTime = Date.now() - fastPackStart;
+    results.fast.times.pack.push(fastPackTime);
+    logger.info('fastPack', { i: run }, fastPackTime.toLocaleString(), 'ms');
+
+    const fastUnpackStart = Date.now();
+    const fastUnpacked = fastPacked.map(Point2.fastUnpack);
+    const fastUnpackTime = Date.now() - fastUnpackStart;
+    results.fast.times.unpack.push(fastUnpackTime);
+    logger.info('fastUnpack', { i: run }, fastUnpackTime.toLocaleString(), 'ms');
+
+    const fastPass = points.every((point, i) => fastUnpacked[i].eq(point));
+    logger[fastPass ? 'success' : 'error']({ fastPass, i: run });
+    results.fast.pass = fastPass;
   }
-  for (let i=0;i<10;++i) {
-    const points=Array.from({length:1_000_000},()=>new Point2(Math.round((Math.random()*100)-50),Math.round((Math.random()*100)-50),))
-    const bounds=Point2.getBounds(points)
-    const utils=Point2.makeUtils(bounds)
 
-    const intPackStart=Date.now()
-    const intSet=new HashSet(utils.packInt,points)
-    const intPackTime=Date.now()-intPackStart
-    times.int.pack.push(intPackTime)
-    logger.info('intPack',{i}, intPackTime.toLocaleString(),'ms')
-
-    const intUnpackStart=Date.now()
-    const intUnpacked=intSet.internal.keys().map(utils.unpackInt).toArray()
-    const intUnpackTime=Date.now()-intUnpackStart
-    times.int.unpack.push(intUnpackTime)
-    logger.info('intUnpack',{i}, intUnpackTime.toLocaleString(),'ms')
-    //TODO: test that intUnpacked matches points
-
-    const bigPackStart=Date.now()
-    const bigSet=new HashSet(utils.packBigInt,points)
-    const bigPackTime=Date.now()-bigPackStart
-    times.big.pack.push(bigPackTime)
-    logger.info('bigPack',{i},bigPackTime.toLocaleString(),'ms')
-
-    const bigUnpackStart=Date.now()
-    const bigUnpacked=bigSet.internal.keys().map(utils.unpackBigInt).toArray()
-    const bigUnpackTime=Date.now()-bigUnpackStart
-    times.big.unpack.push(bigUnpackTime)
-    logger.info('bigUnpack',{i},bigPackTime.toLocaleString(),'ms')
-
-    const mainPackStart=Date.now()
-    const mainSet=new HashSet(Point2.pack,points)
-    const mainPackTime=Date.now()-mainPackStart
-    times.main.pack.push(mainPackTime)
-    logger.info('mainPack',{i},mainPackTime.toLocaleString(),'ms')
-    const mainUnpackStart=Date.now()
-    const mainUnpacked=mainSet.internal.keys().map(Point2.unpack).toArray()
-    const mainUnpackTime=Date.now()-mainUnpackStart
-    times.main.unpack.push(mainUnpackTime)
-    logger.info('mainUnpack',{i},mainUnpackTime.toLocaleString(),'ms')
-
-  }
-
-  Object.entries(times).forEach(([key,data])=>
-    Object.entries(data).forEach(([test,times])=>{
-      const min=Math.min(...times)
-      const max=Math.max(...times)
-      const total=times.reduce((acc,item)=>acc+item,0)
-      const avg=total/(times.length||1)
-      logger.info({key,test,min,max,total,avg})
-    })
-  )
-
-
+  Object.entries(results).forEach(([method, data]) => {
+    logger[data.pass ? 'success' : 'error']({ method, pass: data.pass });
+    Object.entries(data.times).forEach(([test, times]) => {
+      const min = Math.min(...times);
+      const max = Math.max(...times);
+      const total = times.reduce((acc, item) => acc + item, 0);
+      const avg = total / (times.length || 1);
+      logger.info({ test, min, max, avg });
+    });
+  });
 }
 
 function main() {
