@@ -2,6 +2,7 @@
 
 import { inspect } from 'node:util';
 
+/** slow. use `BinaryHeap` */
 export class SortedQueue<Item> {
   #array: Item[] = [];
   // #ops = 0;

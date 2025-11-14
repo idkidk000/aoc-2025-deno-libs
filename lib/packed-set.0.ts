@@ -2,7 +2,7 @@
 
 /** Wrapper around Set where key is passed though packer and unpacker functions
  *
- * `PackedSet` might be a better choice if unpacking is slow
+ * `HashedSet` might be a better choice if unpacking is slow
  */
 export class PackedSet<Key, Packed extends string | number | bigint> {
   #set: Set<Packed>;

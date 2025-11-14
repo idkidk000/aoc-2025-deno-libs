@@ -1,7 +1,20 @@
 // DONE
 
-const OFFSETS_4 = [[0, -1], [1, 0], [0, 1], [-1, 0]];
-const OFFSETS_8 = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
+export type XyTuple = [x: number, y: number];
+export interface XyObject {
+  x: number;
+  y: number;
+}
+export interface XyBounds {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
+const OFFSETS_4: XyTuple[] = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+const OFFSETS_8: XyTuple[] = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
+const INT64_MASK = (1n << 64n) - 1n;
 
 // these both refer to the same area in memory. preallocating and reusing is significantly faster than allocating and discarding on each call, but it's not async safe
 const float64Array = new Float64Array(2);
@@ -36,10 +49,10 @@ export class Point2D {
   }
   /** Max of x and y distances */
   public chebyshev(other: Point2D) {
-    return Math.max(Math.abs(this.x - other.x), Math.abs(this.x - other.x));
+    return Math.max(Math.abs(this.x - other.x), Math.abs(this.y - other.y));
   }
-  public get xy(){
-    return {x:this.x,y:this.y}
+  public get xy(): XyObject {
+    return { x: this.x, y: this.y };
   }
   public static get offsets4() {
     return OFFSETS_4.map(([x, y]) => new Point2D(x, y));
@@ -47,7 +60,7 @@ export class Point2D {
   public static get offsets8() {
     return OFFSETS_8.map(([x, y]) => new Point2D(x, y));
   }
-  public static getBounds(iterable: Iterable<Point2D>) {
+  public static bounds(iterable: Iterable<Point2D>): XyBounds {
     const items = [...iterable];
     return items.length
       ? items.reduce(
@@ -61,85 +74,64 @@ export class Point2D {
       )
       : { minX: 0, maxX: 0, minY: 0, maxY: 0 };
   }
-  public static makeUtils({ minX, maxX, minY, maxY }: { minX: number; maxX: number; minY: number; maxY: number }) {
-    const rangeY = maxY - minY + 1;
-    // don't divide or multiply by 0
-    const safeRangeY = Math.ceil(rangeY) || 1;
-    // shifting and masking by 0 is fine when all ys are the same value
-    const widthY = BigInt(Math.ceil(Math.log2(rangeY)));
-    const maskY = (1n << widthY) - 1n;
-    function inBounds(value: Point2D) {
-      return value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY;
-    }
-    return {
-      inBounds,
-      /** `value` **must** contain integer coordinates
-       *
-       * Can return values > `Number.MAX_SAFE_INTEGER` for very large coordinates, but only those lower can be unpacked
-       *
-       *  Throws on out-of-bounds
-       */
-      packInt(value: Point2D) {
-        if (!inBounds(value)) throw new Error('cannot pack an out-of-bounds value');
-        return (value.x - minX) * safeRangeY + (value.y - minY);
-      },
-      /** Throws on `value` > `Number.MAX_SAFE_INTEGER` */
-      unpackInt(value: number) {
-        if (value > Number.MAX_SAFE_INTEGER) throw new Error(`overflow: ${value} > Number.MAX_SAFE_INTEGER and cannot be unpacked`);
-        return new Point2D(Math.floor(value / safeRangeY) + minX, (value % safeRangeY) + minY);
-      },
-      /** `value` **must** contain integer coordinates
-       *
-       * Throws on out-of-bounds
-       *
-       * Similar performance to `safePack`, but can produce smaller return values
-       *
-       * @returns bigint of minimum width
-       */
-      packBigInt(value: Point2D) {
-        if (!inBounds(value)) throw new Error('cannot pack an out-of-bounds value');
-        return (BigInt(value.x - minX) << widthY) | (BigInt(value.y - minY));
-      },
-      unpackBigInt(value: bigint) {
-        return new Point2D(Number(value >> widthY) + minX, Number(value & maskY) + minY);
-      },
-    };
-  }
-  /** Read x and y's binary representation as 64bit ints and smush together. Handles floats and large values. Accurate but slow due to buffer allocations
-   * @returns (typepunned x width + 64) bit bigint
+  /** Read x and y (Float64) as Int64 using shared buffers and combine into an Int128
+   *
+   * Use `makeUtils().packSmallInt` for small integers
    */
-  public static safePack(value: Point2D) {
-    const [x, y] = new BigUint64Array(new Float64Array([value.x, value.y]).buffer);
-    return (x << 64n) | y;
-  }
-  public static safeUnpack(value: bigint) {
-    const [x, y] = new Float64Array(new BigUint64Array([value >> 64n, value & ((1n << 64n) - 1n)]).buffer);
-    return new Point2D(x, y);
-  }
-  /** Same as `safePack`, but using shared buffers
-   *
-   * `packInt` is faster and produces much smaller return values for small integers
-   *
-   * `packBigInt` is about the same speed but can produce smaller return values, but `unpackBigInt` is slower than `fastUnpack`
-   *
-   * **not async safe** */
-  public static fastPack(value: Point2D) {
-    // use the preallocated array buffers
+  public static pack(value: Point2D) {
     float64Array[0] = value.x;
     float64Array[1] = value.y;
     const [x, y] = bigUint64Array;
     return (x << 64n) | y;
   }
-  /** Same as `safeUnpack`, but using shared buffers
-   *
-   * Only `unpackInt` is faster
-   *
-   *  **not async safe** */
-  public static fastUnpack(value: bigint) {
-    // use the preallocated array buffers
+  public static unpack(value: bigint) {
     bigUint64Array[0] = value >> 64n;
-    bigUint64Array[1] = value & ((1n << 64n) - 1n);
+    bigUint64Array[1] = value & INT64_MASK;
     const [x, y] = float64Array;
     return new Point2D(x, y);
+  }
+  public static makeInBounds({ minX, maxX, minY, maxY }: XyBounds) {
+    return function (value: Point2D) {
+      return value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY;
+    };
+  }
+  /** These utils are faster than the `pack` and `unpack` static methods but only handle small integers */
+  public static makeSmallIntPacker({ minX, maxX, minY, maxY }: XyBounds) {
+    const widthY = Math.ceil(Math.log2(maxY - minY + 1));
+    const maskY = (1 << widthY) - 1;
+    function packUnsafe(value: Point2D) {
+      return ((value.x - minX) << widthY) | (value.y - minY);
+    }
+    function unpackUnsafe(value: number) {
+      return new Point2D(
+        (value >> widthY) + minX,
+        (value & maskY) + minY,
+      );
+    }
+    return {
+      packUnsafe,
+      /** throws on non-integer and oob */
+      pack(value: Point2D) {
+        if (
+          !(
+            Number.isInteger(value.x) &&
+            Number.isInteger(value.y) &&
+            value.x >= minX &&
+            value.x <= maxX &&
+            value.y >= minY &&
+            value.y <= maxY
+          )
+        ) {
+          throw new Error('only in-bounds integers can be packed');
+        }
+        return packUnsafe(value);
+      },
+      unpackUnsafe,
+      /** throws on negative, float, and >MAX_SAFE_INTEGER */
+      unpack(value: number) {
+        if (value < 0 || !Number.isSafeInteger(value)) throw new Error('only safe positive integers can be unpacked');
+        return unpackUnsafe(value);
+      },
+    };
   }
 }

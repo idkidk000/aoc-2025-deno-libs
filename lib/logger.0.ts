@@ -9,13 +9,13 @@ import { fileURLToPath } from 'node:url';
 const MAX_PATH_DEPTH = 3;
 
 const levels = {
-  'Debug:High': { colour: ansiStyles.blue, method: 'debug', value: 0 },
-  'Debug:Med': { colour: ansiStyles.blue, method: 'debug', value: 1 },
-  'Debug:Low': { colour: ansiStyles.blue, method: 'debug', value: 2 },
-  'Info': { colour: ansiStyles.cyan, method: 'info', value: 3 },
-  'Success': { colour: ansiStyles.green, method: 'info', value: 4 },
-  'Warn': { colour: ansiStyles.yellow, method: 'warn', value: 5 },
-  'Error': { colour: ansiStyles.red, method: 'error', value: 6 },
+  'Debug:High': { colour: ansiStyles.fgIntense.blue, method: 'debug', value: 0 },
+  'Debug:Med': { colour: ansiStyles.fgIntense.blue, method: 'debug', value: 1 },
+  'Debug:Low': { colour: ansiStyles.fgIntense.blue, method: 'debug', value: 2 },
+  'Info': { colour: ansiStyles.fgIntense.cyan, method: 'info', value: 3 },
+  'Success': { colour: ansiStyles.fgIntense.green, method: 'info', value: 4 },
+  'Warn': { colour: ansiStyles.fgIntense.yellow, method: 'warn', value: 5 },
+  'Error': { colour: ansiStyles.fgIntense.red, method: 'error', value: 6 },
 } as const;
 type LevelName = keyof typeof levels;
 

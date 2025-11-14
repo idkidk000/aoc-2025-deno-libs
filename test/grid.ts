@@ -1,5 +1,6 @@
 import { Grid } from '@/lib/grid.0.ts';
 import { Logger } from '@/lib/logger.0.ts';
+import { ansiStyles } from '../lib/misc.0.ts';
 
 const logger = new Logger(import.meta.url);
 // const rows = 3;
@@ -34,7 +35,7 @@ for (let run = 0; run < 100; ++run) {
   const rows = Math.round(Math.random() * 1000);
   const cols = Math.round(Math.random() * 1000);
   logger.info({ run, rows, cols });
-  const gridXy = new Grid('xy', { rows, cols }, () => 0);
+  const gridXy = new Grid('xy', { rows, cols, fill: () => 0 });
   let xyOk = true;
   for (let x = 0; x < cols; ++x) {
     for (let y = 0; y < rows; ++y) {
@@ -56,7 +57,7 @@ for (let run = 0; run < 100; ++run) {
     }
   }
   if (xyOk) ++results.xy.ok;
-  const gridRc = new Grid('rc', { rows, cols }, () => 0);
+  const gridRc = new Grid('rc', { rows, cols, fill: () => 0 });
   let rcOk = true;
   for (let r = 0; r < rows; ++r) {
     for (let c = 0; c < cols; ++c) {
@@ -81,3 +82,24 @@ for (let run = 0; run < 100; ++run) {
 }
 
 logger[Object.values(results).some((val) => val.invalid || val.throws) ? 'error' : 'success'](results);
+
+const grid = new Grid('rc', { cols: 10, rows: 10, fill: ({ r, c }) => (r + c) % 10 }, (v) => {
+  switch (Math.round(Math.random() * 5)) {
+    case 0:
+      return `${ansiStyles.bold}${ansiStyles.fgIntense.blue}${v}${ansiStyles.reset}`;
+    case 1:
+      return `${ansiStyles.bold}${ansiStyles.fgIntense.cyan}${v}${ansiStyles.reset}`;
+    case 2:
+      return `${ansiStyles.bold}${ansiStyles.fgIntense.green}${v}${ansiStyles.reset}`;
+    case 3:
+      return `${ansiStyles.bold}${ansiStyles.fgIntense.purple}${v}${ansiStyles.reset}`;
+    case 4:
+      return `${ansiStyles.bold}${ansiStyles.fgIntense.red}${v}${ansiStyles.reset}`;
+    case 5:
+      return `${ansiStyles.bold}${ansiStyles.fgIntense.yellow}${v}${ansiStyles.reset}`;
+    default:
+      throw new Error('no');
+  }
+});
+
+logger.info(grid);

@@ -1,30 +1,30 @@
-import { HashedMap } from '../lib/hashed-map.0.ts';
-import { HashedSet } from '../lib/hashed-set.0.ts';
-import { Logger } from '../lib/logger.0.ts';
-import { PackedMap } from '../lib/packed-map.0.ts';
-import { PackedSet } from '../lib/packed-set.0.ts';
-import { Point2D } from '../lib/point2d.0.ts';
+import { HashedMap } from '@/lib/hashed-map.0.ts';
+import { HashedSet } from '@/lib/hashed-set.0.ts';
+import { Logger } from '@/lib/logger.0.ts';
+import { PackedMap } from '@/lib/packed-map.0.ts';
+import { PackedSet } from '@/lib/packed-set.0.ts';
+import { Point2D } from '@/lib/point2d.0.ts';
 
 const logger = new Logger(import.meta.url);
 const results: Record<'packedSet' | 'hashedSet' | 'packedMap' | 'hashedMap', { write: number[]; read: number[] }> = {
-  hashedMap: { read: [], write: [] },
+  packedSet: { read: [], write: [] },
   hashedSet: { read: [], write: [] },
   packedMap: { read: [], write: [] },
-  packedSet: { read: [], write: [] },
+  hashedMap: { read: [], write: [] },
 };
 
 for (let run = 0; run < 10; ++run) {
-  const points = Array.from({ length: 100_000 }, () => new Point2D(Math.random() * 10_000, Math.random() * 10_000));
+  const points = Array.from({ length: 1_000_000 }, () => new Point2D(Math.random() * 10_000, Math.random() * 10_000));
   const pointsPair: [Point2D, number][] = points.map((point, i) => [point, i]);
 
   // PackedSet
   const packedSetWriteStarted = performance.now();
-  const packedSet = new PackedSet(Point2D.fastPack, Point2D.fastUnpack, points);
+  const packedSet = new PackedSet(Point2D.pack, Point2D.unpack, points);
   const packedSetWriteTime = performance.now() - packedSetWriteStarted;
   results.packedSet.write.push(packedSetWriteTime);
 
   const packedSetReadStarted = performance.now();
-  const unpackedSet = packedSet.keys().toArray();
+  const _unpackedSet = packedSet.keys().toArray();
   const packedSetReadTime = performance.now() - packedSetReadStarted;
   results.packedSet.read.push(packedSetReadTime);
 
@@ -32,12 +32,12 @@ for (let run = 0; run < 10; ++run) {
 
   // HashedSet
   const hashedSetWriteStarted = performance.now();
-  const hashedSet = new HashedSet(Point2D.fastPack, points);
+  const hashedSet = new HashedSet(Point2D.pack, points);
   const hashedSetWriteTime = performance.now() - hashedSetWriteStarted;
   results.hashedSet.write.push(hashedSetWriteTime);
 
   const hashedSetReadStarted = performance.now();
-  const unhashedSet = hashedSet.keys().toArray();
+  const _unhashedSet = hashedSet.keys().toArray();
   const hashedSetReadTime = performance.now() - hashedSetReadStarted;
   results.hashedSet.read.push(hashedSetReadTime);
 
@@ -45,12 +45,12 @@ for (let run = 0; run < 10; ++run) {
 
   // PackedMap
   const packedMapWriteStarted = performance.now();
-  const packedMap = new PackedMap(Point2D.fastPack, Point2D.fastUnpack, pointsPair);
+  const packedMap = new PackedMap(Point2D.pack, Point2D.unpack, pointsPair);
   const packedMapWriteTime = performance.now() - packedMapWriteStarted;
   results.packedMap.write.push(packedMapWriteTime);
 
   const packedMapReadStarted = performance.now();
-  const unpackedMap = packedMap.keys().toArray();
+  const _unpackedMap = packedMap.entries().toArray();
   const packedMapReadTime = performance.now() - packedMapReadStarted;
   results.packedMap.read.push(packedMapReadTime);
 
@@ -58,12 +58,12 @@ for (let run = 0; run < 10; ++run) {
 
   // HashedMap
   const hashedMapWriteStarted = performance.now();
-  const hashedMap = new HashedMap(Point2D.fastPack, pointsPair);
+  const hashedMap = new HashedMap(Point2D.pack, pointsPair);
   const hashedMapWriteTime = performance.now() - hashedMapWriteStarted;
   results.hashedMap.write.push(hashedMapWriteTime);
 
   const hashedMapReadStarted = performance.now();
-  const unhashedMap = hashedMap.keys().toArray();
+  const _unhashedMap = hashedMap.entries().toArray();
   const hashedMapReadTime = performance.now() - hashedMapReadStarted;
   results.hashedMap.read.push(hashedMapReadTime);
 

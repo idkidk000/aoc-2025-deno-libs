@@ -1,10 +1,8 @@
-interface Point {
-  x: number;
-  y: number;
-}
-interface Line {
-  a: Point;
-  b: Point;
+import { XyObject } from '@/lib/point2d.0.ts';
+
+export interface Line {
+  a: XyObject;
+  b: XyObject;
 }
 
 function factorial(value: number): number | undefined {
@@ -39,7 +37,7 @@ export const MathsUtils = {
     { a: { x: x0, y: y0 }, b: { x: x1, y: y1 } }: Line,
     { a: { x: x2, y: y2 }, b: { x: x3, y: y3 } }: Line,
     infinite: boolean = false,
-  ): Point | undefined {
+  ): XyObject | undefined {
     const denominator = (x0 - x1) * (y2 - y3) - (y0 - y1) * (x2 - x3);
     if (denominator === 0) return undefined;
     const line0Distance = ((x0 - x2) * (y2 - y3) - (y0 - y2) * (x2 - x3)) / denominator;
@@ -52,8 +50,12 @@ export const MathsUtils = {
     return values.reduce((acc, item) => [Math.min(acc[0], item), Math.max(acc[1], item)], [Infinity, -Infinity]);
   },
   /** positive modulo */
-  modP(value: number, mod: number): number {
+  modP(value: number, mod: number) {
     const result = value % mod;
     return result >= 0 ? result : result + mod;
+  },
+  roundTo: (value: number, digits = 3) => {
+    const multiplier = 10 ** digits;
+    return Math.round(value * multiplier) / multiplier;
   },
 };
