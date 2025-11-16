@@ -97,7 +97,7 @@ export class Grid<Cell, System extends 'xy' | 'rc'> {
   public get cols() {
     return Array.from({ length: this.#cols }, (_, col) => Array.from({ length: this.#rows }, (_, row) => this.#array[(this.#cols * row) + col]));
   }
-  [inspect.custom]() {
+  public [inspect.custom]() {
     const maxLength = Math.floor(Math.log10(this.#rows));
     return `rows: ${this.#rows}, cols: ${this.#cols}\n${
       this.rows.map((row, r) =>

@@ -1,5 +1,5 @@
 import { Logger } from '@/lib/logger.0.ts';
-import { Point2D, XyBounds } from '@/lib/point2d.0.ts';
+import { Bounds2D, Point2D } from '@/lib/point2d.0.ts';
 import { ansiStyles } from '@/lib/misc.0.ts';
 import { MathsUtils } from '@/lib/maths-utils.0.ts';
 
@@ -56,7 +56,7 @@ const makePoints = (test: Test) => {
   return Array.from({ length }, () => new Point2D(make(), make()));
 };
 
-const pack = (method: Method, points: Point2D[], bounds: XyBounds) => {
+const pack = (method: Method, points: Point2D[], bounds: Bounds2D) => {
   const packer = Point2D.makeSmallIntPacker(bounds);
   switch (method) {
     case 'smallInt':
@@ -70,7 +70,7 @@ const pack = (method: Method, points: Point2D[], bounds: XyBounds) => {
   }
 };
 
-const unpack = (method: Method, packed: number[] | bigint[], bounds: XyBounds) => {
+const unpack = (method: Method, packed: number[] | bigint[], bounds: Bounds2D) => {
   const packer = Point2D.makeSmallIntPacker(bounds);
   switch (method) {
     case 'smallInt':

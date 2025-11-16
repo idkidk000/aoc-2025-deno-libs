@@ -1,66 +1,73 @@
 // DONE
 
-export type XyTuple = [x: number, y: number];
-export interface XyObject {
+export type Point2DTuple = [x: number, y: number];
+export interface Point2DLike {
   x: number;
   y: number;
 }
-export interface XyBounds {
+export interface Bounds2D {
   minX: number;
   maxX: number;
   minY: number;
   maxY: number;
 }
 
-const OFFSETS_4: XyTuple[] = [[0, -1], [1, 0], [0, 1], [-1, 0]];
-const OFFSETS_8: XyTuple[] = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
+const OFFSETS_4: Point2DTuple[] = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+const OFFSETS_8: Point2DTuple[] = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
 const INT64_MASK = (1n << 64n) - 1n;
 
 // these both refer to the same area in memory. preallocating and reusing is significantly faster than allocating and discarding on each call, but it's not async safe
 const float64Array = new Float64Array(2);
 const bigUint64Array = new BigUint64Array(float64Array.buffer);
 
-export class Point2D {
-  constructor(public x: number, public y: number) {}
-  public add(other: Point2D) {
+export class Point2D implements Point2DLike {
+  public x: number;
+  public y: number;
+  constructor(x: number, y: number);
+  constructor(value: Point2DLike);
+  constructor(value: Point2DTuple);
+  constructor(a: number | Point2DLike | Point2DTuple, b?: number) {
+    if (typeof a === 'number' && typeof b === 'number') [this.x, this.y] = [a, b];
+    else if (Array.isArray(a)) [this.x, this.y] = a;
+    else if (typeof a === 'object') [this.x, this.y] = [a.x, a.y];
+    else throw new Error('invalid constructor params');
+  }
+  public add(other: Point2DLike) {
     return new Point2D(this.x + other.x, this.y + other.y);
   }
-  public sub(other: Point2D) {
+  public sub(other: Point2DLike) {
     return new Point2D(this.x - other.x, this.y - other.y);
   }
-  public mult(other: Point2D): Point2D;
+  public mult(other: Point2DLike): Point2D;
   public mult(value: number): Point2D;
-  public mult(other: Point2D | number) {
-    return other instanceof Point2D ? new Point2D(this.x * other.x, this.y * other.y) : new Point2D(this.x * other, this.y * other);
+  public mult(other: Point2DLike | number) {
+    return typeof other === 'number' ? new Point2D(this.x * other, this.y * other) : new Point2D(this.x * other.x, this.y * other.y);
   }
-  public eq(other: Point2D) {
+  public eq(other: Point2DLike) {
     return this.x === other.x && this.y === other.y;
   }
   /** Sum of squared x and y distances */
-  public dist2(other: Point2D) {
+  public dist2(other: Point2DLike) {
     return (this.x - other.x) ** 2 + (this.y - other.y) ** 2;
   }
-  public dist(other: Point2D) {
+  public dist(other: Point2DLike) {
     return Math.sqrt(this.dist2(other));
   }
   /** Sum of x and y distances */
-  public manhattan(other: Point2D) {
+  public manhattan(other: Point2DLike) {
     return Math.abs(this.x - other.x) + Math.abs(this.y - other.y);
   }
   /** Max of x and y distances */
-  public chebyshev(other: Point2D) {
+  public chebyshev(other: Point2DLike) {
     return Math.max(Math.abs(this.x - other.x), Math.abs(this.y - other.y));
   }
-  public get xy(): XyObject {
-    return { x: this.x, y: this.y };
-  }
   public static get offsets4() {
-    return OFFSETS_4.map(([x, y]) => new Point2D(x, y));
+    return OFFSETS_4.map((item) => new Point2D(item));
   }
   public static get offsets8() {
-    return OFFSETS_8.map(([x, y]) => new Point2D(x, y));
+    return OFFSETS_8.map((item) => new Point2D(item));
   }
-  public static bounds(iterable: Iterable<Point2D>): XyBounds {
+  public static bounds(iterable: Iterable<Point2DLike>): Bounds2D {
     const items = [...iterable];
     return items.length
       ? items.reduce(
@@ -78,7 +85,7 @@ export class Point2D {
    *
    * Use `makeUtils().packSmallInt` for small integers
    */
-  public static pack(value: Point2D) {
+  public static pack(value: Point2DLike) {
     float64Array[0] = value.x;
     float64Array[1] = value.y;
     const [x, y] = bigUint64Array;
@@ -90,28 +97,25 @@ export class Point2D {
     const [x, y] = float64Array;
     return new Point2D(x, y);
   }
-  public static makeInBounds({ minX, maxX, minY, maxY }: XyBounds) {
-    return function (value: Point2D) {
+  public static makeInBounds({ minX, maxX, minY, maxY }: Bounds2D) {
+    return function (value: Point2DLike) {
       return value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY;
     };
   }
   /** These utils are faster than the `pack` and `unpack` static methods but only handle small integers */
-  public static makeSmallIntPacker({ minX, maxX, minY, maxY }: XyBounds) {
+  public static makeSmallIntPacker({ minX, maxX, minY, maxY }: Bounds2D) {
     const widthY = Math.ceil(Math.log2(maxY - minY + 1));
     const maskY = (1 << widthY) - 1;
-    function packUnsafe(value: Point2D) {
+    function packUnsafe(value: Point2DLike) {
       return ((value.x - minX) << widthY) | (value.y - minY);
     }
     function unpackUnsafe(value: number) {
-      return new Point2D(
-        (value >> widthY) + minX,
-        (value & maskY) + minY,
-      );
+      return new Point2D((value >> widthY) + minX, (value & maskY) + minY);
     }
     return {
       packUnsafe,
       /** throws on non-integer and oob */
-      pack(value: Point2D) {
+      pack(value: Point2DLike) {
         if (
           !(
             Number.isInteger(value.x) &&

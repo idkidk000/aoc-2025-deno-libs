@@ -26,21 +26,44 @@ const console = new Console({
   stdout,
 });
 
+export enum LogDate {
+  None,
+  Time,
+  DateTime,
+}
+
 export class Logger {
   #name: string;
   #levelValue: number;
+  #logDate: LogDate;
+  #makePrefix(levelName: LevelName, colour: string) {
+    if (this.#logDate === LogDate.None) return `${ansiStyles.bold}${colour}[${levelName} ${this.#name}]${ansiStyles.reset}`;
+    const now = new Date();
+    if (this.#logDate === LogDate.Time) {
+      return `${ansiStyles.bold}${colour}[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${
+        now.getSeconds().toString().padStart(2, '0')
+      }.${now.getMilliseconds().toString().padStart(3, '0')} ${levelName} ${this.#name}]${ansiStyles.reset}`;
+    }
+    return `${ansiStyles.bold}${colour}[${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')} ${
+      now.getHours().toString().padStart(2, '0')
+    }:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${
+      now.getMilliseconds().toString().padStart(3, '0')
+    } ${levelName} ${this.#name}]${ansiStyles.reset}`;
+  }
   #log(levelName: LevelName, ...message: unknown[]) {
     const { colour, method, value } = levels[levelName];
     if (value < this.#levelValue) return;
-    const now = new Date();
-    const prefix = `${ansiStyles.bold}${colour}[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${
-      now.getSeconds().toString().padStart(2, '0')
-    }.${now.getMilliseconds().toString().padStart(3, '0')} ${levelName} ${this.#name}]${ansiStyles.reset}`;
+    const prefix = this.#makePrefix(levelName, colour);
     console[method](prefix, ...message);
   }
-  constructor(importMetaUrl: string, name?: string, { logLevel = 'Debug:High' }: { logLevel?: LevelName | number } = {}) {
+  constructor(
+    importMetaUrl: string,
+    name?: string,
+    { logLevel = 'Debug:High', logDate = LogDate.None }: { logLevel?: LevelName | number; logDate?: LogDate } = {},
+  ) {
     this.#name = `${relative(cwd(), fileURLToPath(importMetaUrl)).split(sep).slice(-MAX_PATH_DEPTH).join(sep)}:${name ?? 'main'}`;
     this.#levelValue = (typeof logLevel === 'number') ? this.#levelValue = logLevel : levels[logLevel].value;
+    this.#logDate = logDate;
   }
   public debugHigh(...message: unknown[]) {
     this.#log('Debug:High', ...message);

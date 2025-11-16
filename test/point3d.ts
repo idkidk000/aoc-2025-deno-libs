@@ -1,5 +1,5 @@
 import { Logger } from '@/lib/logger.0.ts';
-import { Point3D, XyzBounds } from '@/lib/point3d.0.ts';
+import { Bounds3D, Point3D } from '@/lib/point3d.0.ts';
 import { ansiStyles } from '@/lib/misc.0.ts';
 import { MathsUtils } from '@/lib/maths-utils.0.ts';
 
@@ -56,7 +56,7 @@ const makePoints = (test: Test) => {
   return Array.from({ length }, () => new Point3D(make(), make(), make()));
 };
 
-const pack = (method: Method, points: Point3D[], bounds: XyzBounds) => {
+const pack = (method: Method, points: Point3D[], bounds: Bounds3D) => {
   const packer = Point3D.makeSmallIntPacker(bounds);
   switch (method) {
     case 'smallInt':
@@ -70,7 +70,7 @@ const pack = (method: Method, points: Point3D[], bounds: XyzBounds) => {
   }
 };
 
-const unpack = (method: Method, packed: number[] | bigint[], bounds: XyzBounds) => {
+const unpack = (method: Method, packed: number[] | bigint[], bounds: Bounds3D) => {
   const packer = Point3D.makeSmallIntPacker(bounds);
   switch (method) {
     case 'smallInt':

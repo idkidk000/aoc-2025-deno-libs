@@ -1,89 +1,86 @@
-// DONE
-
 import { inspect } from 'node:util';
 
+// write then increment for pushBack, decrement then read for popBack
+// decrement then write for pushFront, read then increment for popFront
+
+/** Basic circular array since native Array `shift` and `unshift` are very slow  */
 export class Deque<Item> {
   #array: Item[];
-  #front: number = 0;
-  #back: number = 0;
-  constructor(size: number);
-  constructor(iterable: Iterable<Item>);
-  constructor(param: number | Iterable<Item> = 1000) {
-    if (typeof param === 'number') this.#array = new Array(param);
+  #front = 0;
+  #back = 0;
+  #factor: number;
+  #delete: boolean;
+  /** Lower growth factor is better for ram but higher is better for performance
+   *
+   * Delete after pop is more correct and should help with gc but hurts performance
+   */
+  constructor(length?: number, params?: { growthFactor?: number; deleteAfterPop?: boolean });
+  constructor(iterable: Iterable<Item>, params?: { growthFactor?: number; deleteAfterPop?: boolean });
+  constructor(a: number | Iterable<Item> = 1024, { growthFactor = 2, deleteAfterPop = false }: { growthFactor?: number; deleteAfterPop?: boolean } = {}) {
+    if (typeof a === 'number') this.#array = new Array(Math.max(a, 1));
     else {
-      const items = [...param];
-      this.#array = new Array(items.length * 2);
-      this.pushBack(...items);
+      const items = [...a];
+      this.#array = new Array(Math.ceil(Math.max(items.length * growthFactor, 1)));
+      for (const item of items) this.#array[this.#back++] = item;
     }
+    this.#factor = growthFactor;
+    this.#delete = deleteAfterPop;
   }
-  get length() {
-    return (this.#array.length - this.#front + this.#back) % this.#array.length;
+  // /** internal array length */
+  // public get length() {
+  //   return this.#array.length;
+  // }
+  /** apparent length */
+  public get size() {
+    if (this.#front === this.#back) return 0;
+    if (this.#front > this.#back) return this.#array.length - this.#front + this.#back;
+    return this.#back - this.#front;
   }
-  get size() {
-    return this.#array.length;
+  #grow() {
+    const array = new Array(Math.ceil(this.#array.length * this.#factor));
+    for (let destIx = 0; destIx < this.#array.length; ++destIx) {
+      const intermediate = destIx + this.#back;
+      array[destIx] = this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length];
+    }
+    this.#front = 0;
+    this.#back = this.#array.length;
+    this.#array = array;
   }
-  get front() {
-    return this.#front;
+  public pushBack(value: Item) {
+    this.#array[this.#back] = value;
+    if (this.#back === this.#array.length - 1) this.#back = 0;
+    else ++this.#back;
+    if (this.#front === this.#back) this.#grow();
   }
-  get back() {
-    return this.#back;
+  public pushFront(value: Item) {
+    if (this.#front === 0) this.#front = this.#array.length - 1;
+    else --this.#front;
+    this.#array[this.#front] = value;
+    if (this.#front === this.#back) this.#grow();
   }
-  get internal() {
-    return this.#array;
-  }
-  get empty() {
-    // we always grow when the array is filled so this cannot return a false positive
-    return this.#front === this.#back;
-  }
-  popBack() {
-    if (this.empty) return undefined;
-    if (this.#back === 0) this.#back === this.#array.length - 1;
+  public popBack(): Item | void {
+    if (this.#front === this.#back) return;
+    if (this.#back === 0) this.#back = this.#array.length - 1;
     else --this.#back;
     const value = this.#array[this.#back];
-    delete this.#array[this.#back];
+    if (this.#delete) delete this.#array[this.#back];
     return value;
   }
-  popFront() {
-    if (this.empty) return undefined;
+  public popFront(): Item | void {
+    if (this.#front === this.#back) return;
     const value = this.#array[this.#front];
-    delete this.#array[this.#front];
+    if (this.#delete) delete this.#array[this.#front];
     if (this.#front === this.#array.length - 1) this.#front = 0;
     else ++this.#front;
     return value;
   }
-  pushBack(...values: Item[]) {
-    for (const value of values) {
-      this.#array[this.#back] = value;
-      if (this.#back === this.#array.length - 1) this.#back = 0;
-      else ++this.#back;
-      if (this.#front === this.#back) this.#grow();
-    }
-    return this;
-  }
-  pushFront(...values: Item[]) {
-    for (const value of values.toReversed()) {
-      if (this.#front === 0) this.#front = this.#array.length - 1;
-      else --this.#front;
-      if (this.#front === this.#back) this.#grow();
-      this.#array[this.#front] = value;
-    }
-    return this;
-  }
-  #grow() {
-    const array = new Array(this.#array.length * 2);
-    for (let i = 0; i < this.#back; ++i) array[i] = this.#array[i];
-    for (let i = this.#front; i < this.#array.length; ++i) array[i + this.#array.length] = this.#array[i];
-    this.#front += this.#array.length;
-    this.#array = array;
-  }
-  [inspect.custom]() {
+  public [inspect.custom]() {
     return {
-      internal: this.internal,
-      front: this.front,
-      back: this.back,
+      internal: this.#array,
+      front: this.#front,
+      back: this.#back,
+      length: this.#array.length,
       size: this.size,
-      length: this.length,
-      empty: this.empty,
     };
   }
 }

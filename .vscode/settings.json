@@ -3,7 +3,7 @@
     "editor.codeActionsOnSave": [],
     "editor.defaultFormatter": "denoland.vscode-deno",
     "editor.formatOnSave": true,
-    "editor.formatOnSaveMode": "modificationsIfAvailable"
+    "editor.formatOnSaveMode": "file"
   },
   "deno.enable": true
 }

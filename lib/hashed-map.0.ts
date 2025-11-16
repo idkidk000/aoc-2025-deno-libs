@@ -1,6 +1,7 @@
-// DONE
+import { inspect } from 'node:util';
 
 /** Wrapper around Map which stores the original key as part of the Map's value, so there is no unpacking overhead */
+// `implements Map<Key, Value>` is helpful to verify the shape of the class but it cannot actually be satisfied
 export class HashedMap<Key, Value, Hash extends string | number | bigint> {
   #map: Map<Hash, { key: Key; value: Value }>;
   constructor(public readonly hasher: (key: Key) => Hash, iterable?: Iterable<[Key, Value]>) {
@@ -12,7 +13,7 @@ export class HashedMap<Key, Value, Hash extends string | number | bigint> {
   public delete(key: Key) {
     return this.#map.delete(this.hasher(key));
   }
-  public entries(): IteratorObject<[Key, Value]> {
+  public entries(): MapIterator<[Key, Value]> {
     return this.#map.values().map(({ key, value }) => [key, value]);
   }
   public forEach(callback: (value: Value, key: Key, HashedMap: HashedMap<Key, Value, Hash>) => void) {
@@ -24,7 +25,7 @@ export class HashedMap<Key, Value, Hash extends string | number | bigint> {
   public has(key: Key) {
     return this.#map.has(this.hasher(key));
   }
-  public keys(): IteratorObject<Key> {
+  public keys(): MapIterator<Key> {
     return this.#map.values().map(({ key }) => key);
   }
   public set(key: Key, value: Value) {
@@ -34,10 +35,10 @@ export class HashedMap<Key, Value, Hash extends string | number | bigint> {
   public get size() {
     return this.#map.size;
   }
-  public values(): IteratorObject<Value> {
+  public values(): MapIterator<Value> {
     return this.#map.values().map(({ value }) => value);
   }
-  public get internal() {
-    return this.#map;
+  public [inspect.custom]() {
+    return this.entries();
   }
 }

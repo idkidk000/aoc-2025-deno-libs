@@ -1,9 +1,10 @@
-// DONE
+import { inspect } from 'node:util';
 
 /** Wrapper around Map where key is passed though packer and unpacker functions
  *
  * `HashedMap` might be a better choice if unpacking is slow
  */
+// `implements Map<Key, Value>` is helpful to verify the shape of the class but it cannot actually be satisfied
 export class PackedMap<Key, Value, Packed extends string | number | bigint> {
   #map: Map<Packed, Value>;
   constructor(
@@ -19,7 +20,7 @@ export class PackedMap<Key, Value, Packed extends string | number | bigint> {
   public delete(key: Key) {
     return this.#map.delete(this.packer(key));
   }
-  public entries(): IteratorObject<[Key, Value]> {
+  public entries(): MapIterator<[Key, Value]> {
     return this.#map.entries().map(([packed, value]) => [this.unpacker(packed), value]);
   }
   public forEach(callback: (value: Value, key: Key, packedMap: PackedMap<Key, Value, Packed>) => void) {
@@ -31,7 +32,7 @@ export class PackedMap<Key, Value, Packed extends string | number | bigint> {
   public has(key: Key) {
     return this.#map.has(this.packer(key));
   }
-  public keys(): IteratorObject<Key> {
+  public keys(): MapIterator<Key> {
     return this.#map.keys().map((packed) => this.unpacker(packed));
   }
   public set(key: Key, value: Value) {
@@ -41,10 +42,10 @@ export class PackedMap<Key, Value, Packed extends string | number | bigint> {
   public get size() {
     return this.#map.size;
   }
-  public values(): IteratorObject<Value> {
+  public values(): MapIterator<Value> {
     return this.#map.values();
   }
-  public get internal() {
-    return this.#map;
+  public [inspect.custom]() {
+    return this.entries();
   }
 }
