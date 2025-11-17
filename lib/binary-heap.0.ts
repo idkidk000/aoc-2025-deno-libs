@@ -1,11 +1,13 @@
 import { inspect } from 'node:util';
 
+// length < this will use #array.toSorted; >= will use a new BinaryHeap() and copy #array over
+const ITERATOR_COPY_THRESHOLD = 50_000;
 /**
  * root (array[0]) is the next item according to comparator
  * each parent has two children. the children's value values sort equally or lower than the parent's according to comparator
  * on push, the new item is placed at the end of the array (tip of the tree) and is swapped toward the root until comparator is satisfied. the tree is now sorted.
- * on pop, the root (array[0]) is returned. the last array item (tip of the tree) is then moved to the root and recursively tested against each child and swpped until comparator is satisfied. the tree is now sorted.
- * a sorted tree guarantees that the root (array[0]) is the next item, and that each item's children rank <= according to comparator. but last (array.at(-1)!) is not necessarily the last item according to comparator and there are no shortcuts for getting the nth item from the root - each item must be compared against its children recursively
+ * on pop, the root (array[0]) is returned. the last array item (tip of the tree) is then moved to the root and recursively tested against each child and swapped until comparator is satisfied. the tree is now sorted.
+ * a sorted tree guarantees that the root (array[0]) is the next item, and that each item's children rank <= according to comparator. but last (array.at(-1)!) is not necessarily the last item according to comparator and there are no shortcuts for getting the nth item from the root - the root must be replaced with the last and that must be recursively swapped towards the correct position on each pop
  *
  * array indices:
  * 7 8
@@ -77,7 +79,7 @@ export class BinaryHeap<Item> {
   /** **Non-destructive** - iterates over a copy */
   public *items(): Generator<Item, void, void> {
     // `toSorted` is faster on smaller arrays. creating a new heap is faster on larger
-    if (this.#array.length < 50_000) { for (const item of this.#array.toSorted(this.comparator)) yield item; }
+    if (this.#array.length < ITERATOR_COPY_THRESHOLD) { for (const item of this.#array.toSorted(this.comparator)) yield item; }
     else {
       const heap = new BinaryHeap(this.comparator);
       heap.#array = [...this.#array];
@@ -87,7 +89,7 @@ export class BinaryHeap<Item> {
   }
   /** **Non-destructive** - iterates over a copy */
   public *entries(): Generator<[number, Item], void, void> {
-    if (this.#array.length < 50_000) { for (const [i, item] of this.#array.toSorted(this.comparator).entries()) yield [i, item]; }
+    if (this.#array.length < ITERATOR_COPY_THRESHOLD) { for (const [i, item] of this.#array.toSorted(this.comparator).entries()) yield [i, item]; }
     else {
       const heap = new BinaryHeap(this.comparator);
       heap.#array = [...this.#array];
@@ -97,7 +99,7 @@ export class BinaryHeap<Item> {
     }
   }
   public [inspect.custom]() {
-    return this.#array.toSorted(this.comparator);
+    return this.items().toArray();
   }
   public [Symbol.iterator]() {
     return this.items();

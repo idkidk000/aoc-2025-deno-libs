@@ -1,6 +1,5 @@
-import { Logger } from '@/lib/logger.0.ts';
+import { ansiStyles, Logger } from '@/lib/logger.0.ts';
 import { Bounds2D, Point2D } from '@/lib/point2d.0.ts';
-import { ansiStyles } from '@/lib/misc.0.ts';
 import { MathsUtils } from '@/lib/maths-utils.0.ts';
 
 const methods = ['smallInt', 'smallIntUnsafe', 'main'] as const;

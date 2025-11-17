@@ -20,6 +20,7 @@ const INT64_MASK = (1n << 64n) - 1n;
 const float64Array = new Float64Array(2);
 const bigUint64Array = new BigUint64Array(float64Array.buffer);
 
+/** Classes have a performance penalty so all class methods are also available statically for `Point2DLike` objects */
 export class Point2D implements Point2DLike {
   public x: number;
   public y: number;
@@ -32,38 +33,84 @@ export class Point2D implements Point2DLike {
     else if (typeof a === 'object') [this.x, this.y] = [a.x, a.y];
     else throw new Error('invalid constructor params');
   }
-  public add(other: Point2DLike) {
-    return new Point2D(this.x + other.x, this.y + other.y);
+
+  // these just wrap the static methods to save code duplication
+  public add(other: Point2DLike): Point2D {
+    return new Point2D(Point2D.add(this, other));
   }
-  public sub(other: Point2DLike) {
-    return new Point2D(this.x - other.x, this.y - other.y);
+  public sub(other: Point2DLike): Point2D {
+    return new Point2D(Point2D.sub(this, other));
   }
   public mult(other: Point2DLike): Point2D;
   public mult(value: number): Point2D;
-  public mult(other: Point2DLike | number) {
-    return typeof other === 'number' ? new Point2D(this.x * other, this.y * other) : new Point2D(this.x * other.x, this.y * other.y);
+  public mult(other: Point2DLike | number): Point2D {
+    // @ts-expect-error i'm right you're wrong
+    return new Point2D(Point2D.mult(this, other));
   }
-  public eq(other: Point2DLike) {
-    return this.x === other.x && this.y === other.y;
+  public eq(other: Point2DLike): boolean {
+    return Point2D.eq(this, other);
   }
   /** Sum of squared x and y distances */
-  public dist2(other: Point2DLike) {
-    return (this.x - other.x) ** 2 + (this.y - other.y) ** 2;
+  public dist2(other: Point2DLike): number {
+    return Point2D.dist2(this, other);
   }
-  public dist(other: Point2DLike) {
-    return Math.sqrt(this.dist2(other));
+  public dist(other: Point2DLike): number {
+    return Point2D.dist(this, other);
   }
   public dists(other: Point2DLike, abs = false): Point2DLike {
-    return abs ? { x: Math.abs(this.x - other.x), y: Math.abs(this.y = other.y) } : { x: this.x - other.x, y: (this.y = other.y) };
+    return Point2D.dists(this, other, abs);
   }
   /** Sum of x and y distances */
-  public manhattan(other: Point2DLike) {
-    return Math.abs(this.x - other.x) + Math.abs(this.y - other.y);
+  public manhattan(other: Point2DLike): number {
+    return Point2D.manhattan(this, other);
   }
   /** Max of x and y distances */
-  public chebyshev(other: Point2DLike) {
-    return Math.max(Math.abs(this.x - other.x), Math.abs(this.y - other.y));
+  public chebyshev(other: Point2DLike): number {
+    return Point2D.chebyshev(this, other);
   }
+  public *neighbours(count: 4 | 8): Generator<Point2D, void, void> {
+    for (const neighbour of Point2D.neighbours(this, count)) yield new Point2D(neighbour);
+  }
+
+  // static versions of class methods
+  public static add(value: Point2DLike, other: Point2DLike): Point2DLike {
+    return { x: value.x + other.x, y: value.y + other.y };
+  }
+  public static sub(value: Point2DLike, other: Point2DLike): Point2DLike {
+    return { x: value.x - other.x, y: value.y - other.y };
+  }
+  public static mult(value: Point2DLike, other: Point2DLike): Point2DLike;
+  public static mult(value: Point2DLike, multiplier: number): Point2DLike;
+  public static mult(value: Point2DLike, other: Point2DLike | number): Point2DLike {
+    return typeof other === 'number' ? { x: value.x * other, y: value.y * other } : { x: value.x * other.x, y: value.y * other.y };
+  }
+  public static eq(value: Point2DLike, other: Point2DLike): boolean {
+    return value.x === other.x && value.y === other.y;
+  }
+  /** Sum of squared x and y distances */
+  public static dist2(value: Point2DLike, other: Point2DLike): number {
+    return (value.x - other.x) ** 2 + (value.y - other.y) ** 2;
+  }
+  public static dist(value: Point2DLike, other: Point2DLike): number {
+    return Math.sqrt(Point2D.dist2(value, other));
+  }
+  public static dists(value: Point2DLike, other: Point2DLike, abs = false): Point2DLike {
+    return abs ? { x: Math.abs(value.x - other.x), y: Math.abs(value.y = other.y) } : { x: value.x - other.x, y: (value.y = other.y) };
+  }
+  /** Sum of x and y distances */
+  public static manhattan(value: Point2DLike, other: Point2DLike): number {
+    return Math.abs(value.x - other.x) + Math.abs(value.y - other.y);
+  }
+  /** Max of x and y distances */
+  public static chebyshev(value: Point2DLike, other: Point2DLike): number {
+    return Math.max(Math.abs(value.x - other.x), Math.abs(value.y - other.y));
+  }
+  public static *neighbours(value: Point2DLike, count: 4 | 8): Generator<Point2DLike, void, void> {
+    if (count === 4) { for (const [x, y] of OFFSETS_4) yield Point2D.add(value, { x, y }); }
+    if (count === 8) { for (const [x, y] of OFFSETS_8) yield Point2D.add(value, { x, y }); }
+  }
+
+  // static utilities
   public static get offsets4() {
     return OFFSETS_4.map((item) => new Point2D(item));
   }
@@ -84,7 +131,7 @@ export class Point2D implements Point2DLike {
       )
       : { minX: 0, maxX: 0, minY: 0, maxY: 0 };
   }
-  /** Read x and y (Float64) as Int64 using shared buffers and combine into an Int128
+  /** Read x and y (Float64) as Int64 using shared buffers and combine into an Int128 (bigint can have arbitrary width)
    *
    * Use `makeUtils().packSmallInt` for small integers
    */
@@ -105,8 +152,9 @@ export class Point2D implements Point2DLike {
       return value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY;
     };
   }
-  /** These utils are faster than the `pack` and `unpack` static methods but only handle small integers */
+  /** These pack utils are faster than the `pack` and `unpack` static methods but only handle small integers */
   public static makeSmallIntPacker({ minX, maxX, minY, maxY }: Bounds2D) {
+    // a bigint version of this is no faster than `pack` and `unpack` static methods and is restricted to integers
     const widthY = Math.ceil(Math.log2(maxY - minY + 1));
     const maskY = (1 << widthY) - 1;
     function packUnsafe(value: Point2DLike) {

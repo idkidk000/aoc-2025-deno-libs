@@ -1,7 +1,6 @@
-import { Logger } from '../lib/logger.0.ts';
-import { MathsUtils } from '../lib/maths-utils.0.ts';
-import { ansiStyles } from '../lib/misc.0.ts';
-import { Deque, DequeDelete } from '../lib/deque.0.ts';
+import { ansiStyles, Logger } from '@/lib/logger.0.ts';
+import { MathsUtils } from '@/lib/maths-utils.0.ts';
+import { Deque, DequeDelete } from '@/lib/deque.0.ts';
 
 const logger = new Logger(import.meta.url);
 const runs = 10;

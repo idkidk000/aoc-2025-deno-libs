@@ -1,7 +1,6 @@
 import { BinaryHeap } from '@/lib/binary-heap.0.ts';
-import { Logger } from '@/lib/logger.0.ts';
+import { ansiStyles, Logger } from '@/lib/logger.0.ts';
 import { MathsUtils } from '@/lib/maths-utils.0.ts';
-import { ansiStyles } from '@/lib/misc.0.ts';
 
 const logger = new Logger(import.meta.url);
 const comparator = (a: number, b: number) => a - b;

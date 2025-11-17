@@ -1,12 +1,57 @@
 // DONE
 
-import { ansiStyles } from '@/lib/misc.0.ts';
 import { Console } from 'node:console';
 import { relative, sep } from 'node:path';
 import { cwd, stderr, stdout } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const MAX_PATH_DEPTH = 3;
+
+export const ansiStyles = {
+  fg: {
+    black: '\x1b[30m',
+    red: '\x1b[31m',
+    green: '\x1b[32m',
+    yellow: '\x1b[33m',
+    blue: '\x1b[34m',
+    purple: '\x1b[35m',
+    cyan: '\x1b[36m',
+    white: '\x1b[37m',
+  },
+  fgIntense: {
+    black: '\x1b[90m',
+    red: '\x1b[91m',
+    green: '\x1b[92m',
+    yellow: '\x1b[93m',
+    blue: '\x1b[94m',
+    purple: '\x1b[95m',
+    cyan: '\x1b[96m',
+    white: '\x1b[97m',
+  },
+  bg: {
+    black: '\x1b[40m',
+    red: '\x1b[41m',
+    green: '\x1b[42m',
+    yellow: '\x1b[43m',
+    blue: '\x1b[44m',
+    purple: '\x1b[45m',
+    cyan: '\x1b[46m',
+    white: '\x1b[47m',
+  },
+  bgIntense: {
+    black: '\x1b[100m',
+    red: '\x1b[101m',
+    green: '\x1b[102m',
+    yellow: '\x1b[103m',
+    blue: '\x1b[104m',
+    purple: '\x1b[105m',
+    cyan: '\x1b[106m',
+    white: '\x1b[107m',
+  },
+  bold: '\x1b[1m',
+  underline: '\x1b[4m',
+  reset: '\x1b[0m',
+} as const;
 
 const levels = {
   'Debug:High': { colour: ansiStyles.fgIntense.blue, method: 'debug', value: 0 },
