@@ -142,15 +142,16 @@ export class Point3D implements Point3DLike {
   }
   public static *neighbours(value: Point3DLike, count: 6 | 26): Generator<Point3DLike, void, void> {
     if (count === 6) { for (const [x, y, z] of OFFSETS_6) yield Point3D.add(value, { x, y, z }); }
-    if (count === 26) { for (const [x, y, z] of OFFSETS_26) yield Point3D.add(value, { x, y, z }); }
+    else if (count === 26) { for (const [x, y, z] of OFFSETS_26) yield Point3D.add(value, { x, y, z }); }
+    else { throw new Error('invalid neighbour count'); }
   }
 
   // static utilities
-  public static get offsets6() {
-    return OFFSETS_6.map((item) => new Point3D(item));
+  public static get offsets6(): Point3DLike[] {
+    return OFFSETS_6.map(([x, y, z]) => ({ x, y, z }));
   }
-  public static get offsets26() {
-    return OFFSETS_26.map((item) => new Point3D(item));
+  public static get offsets26(): Point3DLike[] {
+    return OFFSETS_26.map(([x, y, z]) => ({ x, y, z }));
   }
   public static bounds(iterable: Iterable<Point3DLike>): Bounds3D {
     const items = [...iterable];
@@ -168,47 +169,43 @@ export class Point3D implements Point3DLike {
       )
       : { minX: 0, maxX: 0, minY: 0, maxY: 0, minZ: 0, maxZ: 0 };
   }
-  /** Read x, y, and z (Float64) as Int64 using shared buffers and combine into an Int192
+  /** Read x, y, and z (Float64) as Int64 using shared buffers and combine into an Int192 (bigint can have arbitrary width)
    *
-   * Use `makeUtils().packSmallInt` for small integers
+   * Use `makeSmallIntPacker()` for small integers
    */
-  public static pack(value: Point3DLike) {
+  public static pack(value: Point3DLike): bigint {
     float64Array[0] = value.x;
     float64Array[1] = value.y;
     float64Array[2] = value.z;
     const [x, y, z] = bigUint64Array;
     return (x << 128n) | (y << 64n) | z;
   }
-  public static unpack(value: bigint) {
+  public static unpack(value: bigint): Point3DLike {
     bigUint64Array[0] = value >> 128n;
     bigUint64Array[1] = (value >> 64n) & INT64_MASK;
     bigUint64Array[2] = value & INT64_MASK;
     const [x, y, z] = float64Array;
-    return new Point3D(x, y, z);
+    return { x, y, z };
   }
   public static makeInBounds({ minX, maxX, minY, maxY, minZ, maxZ }: Bounds3D) {
     return function (value: Point3DLike) {
       return value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY && value.z >= minZ && value.z <= maxZ;
     };
   }
-  /** These pack utils are faster than the `pack` and `unpack` static methods but only handle small integers */
+  /** These are faster than the `pack` and `unpack` static methods but only handle small integers */
   public static makeSmallIntPacker({ minX, maxX, minY, maxY, minZ, maxZ }: Bounds3D) {
-    // a bigint version of this is no faster than `pack` and `unpack` static methods and is restricted to integers
+    // a bigint version of this is no faster than `pack` and `unpack` static methods and is still restricted to integers
     const widthY = Math.ceil(Math.log2(maxY - minY + 1));
     const maskY = (1 << widthY) - 1;
     const widthZ = Math.ceil(Math.log2(maxZ - minZ + 1));
     const maskZ = (1 << widthZ) - 1;
-    function packUnsafe(value: Point3DLike) {
+    function packUnsafe(value: Point3DLike): number {
       return ((value.x - minX) << (widthY + widthZ)) |
         ((value.y - minY) << widthZ) |
         (value.z - minZ);
     }
-    function unpackUnsafe(value: number) {
-      return new Point3D(
-        (value >> (widthY + widthZ)) + minX,
-        ((value >> widthZ) & maskY) + minY,
-        (value & maskZ) + minZ,
-      );
+    function unpackUnsafe(value: number): Point3DLike {
+      return { x: (value >> (widthY + widthZ)) + minX, y: ((value >> widthZ) & maskY) + minY, z: (value & maskZ) + minZ };
     }
     return {
       packUnsafe,

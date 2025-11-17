@@ -33,7 +33,7 @@ export class PackedMap<Key, Value, Packed extends string | number | bigint> {
     return this.#map.has(this.packer(key));
   }
   public keys(): MapIterator<Key> {
-    return this.#map.keys().map((packed) => this.unpacker(packed));
+    return this.#map.keys().map(this.unpacker);
   }
   public set(key: Key, value: Value) {
     this.#map.set(this.packer(key), value);
@@ -44,6 +44,9 @@ export class PackedMap<Key, Value, Packed extends string | number | bigint> {
   }
   public values(): MapIterator<Value> {
     return this.#map.values();
+  }
+  public [Symbol.iterator]() {
+    return this.entries();
   }
   public [inspect.custom]() {
     return this.entries().toArray();

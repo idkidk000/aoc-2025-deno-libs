@@ -38,6 +38,9 @@ export class HashedMap<Key, Value, Hash extends string | number | bigint> {
   public values(): MapIterator<Value> {
     return this.#map.values().map(({ value }) => value);
   }
+  public [Symbol.iterator]() {
+    return this.entries();
+  }
   public [inspect.custom]() {
     return this.entries().toArray();
   }

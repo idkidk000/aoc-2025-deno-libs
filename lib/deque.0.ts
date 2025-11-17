@@ -14,7 +14,7 @@ export interface DequeParams {
   deleteAfterPop?: DequeDelete;
 }
 
-/** Basic circular array since native Array `shift` and `unshift` are very slow  */
+/** Basic circular array since native `Array` is just a dynamic array so `shift` and `unshift` are very slow */
 export class Deque<Item> {
   #array: Item[];
   #front = 0;

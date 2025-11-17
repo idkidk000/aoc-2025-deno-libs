@@ -107,15 +107,16 @@ export class Point2D implements Point2DLike {
   }
   public static *neighbours(value: Point2DLike, count: 4 | 8): Generator<Point2DLike, void, void> {
     if (count === 4) { for (const [x, y] of OFFSETS_4) yield Point2D.add(value, { x, y }); }
-    if (count === 8) { for (const [x, y] of OFFSETS_8) yield Point2D.add(value, { x, y }); }
+    else if (count === 8) { for (const [x, y] of OFFSETS_8) yield Point2D.add(value, { x, y }); }
+    else { throw new Error('invalid neighbour count'); }
   }
 
   // static utilities
-  public static get offsets4() {
-    return OFFSETS_4.map((item) => new Point2D(item));
+  public static get offsets4(): Point2DLike[] {
+    return OFFSETS_4.map(([x, y]) => ({ x, y }));
   }
-  public static get offsets8() {
-    return OFFSETS_8.map((item) => new Point2D(item));
+  public static get offsets8(): Point2DLike[] {
+    return OFFSETS_8.map(([x, y]) => ({ x, y }));
   }
   public static bounds(iterable: Iterable<Point2DLike>): Bounds2D {
     const items = [...iterable];
@@ -133,35 +134,35 @@ export class Point2D implements Point2DLike {
   }
   /** Read x and y (Float64) as Int64 using shared buffers and combine into an Int128 (bigint can have arbitrary width)
    *
-   * Use `makeUtils().packSmallInt` for small integers
+   * Use `makeSmallIntPacker()` for small integers
    */
-  public static pack(value: Point2DLike) {
+  public static pack(value: Point2DLike): bigint {
     float64Array[0] = value.x;
     float64Array[1] = value.y;
     const [x, y] = bigUint64Array;
     return (x << 64n) | y;
   }
-  public static unpack(value: bigint) {
+  public static unpack(value: bigint): Point2DLike {
     bigUint64Array[0] = value >> 64n;
     bigUint64Array[1] = value & INT64_MASK;
     const [x, y] = float64Array;
-    return new Point2D(x, y);
+    return { x, y };
   }
   public static makeInBounds({ minX, maxX, minY, maxY }: Bounds2D) {
     return function (value: Point2DLike) {
       return value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY;
     };
   }
-  /** These pack utils are faster than the `pack` and `unpack` static methods but only handle small integers */
+  /** These are faster than the `pack` and `unpack` static methods but only handle small integers */
   public static makeSmallIntPacker({ minX, maxX, minY, maxY }: Bounds2D) {
-    // a bigint version of this is no faster than `pack` and `unpack` static methods and is restricted to integers
+    // a bigint version of this is no faster than `pack` and `unpack` static methods and is still restricted to integers
     const widthY = Math.ceil(Math.log2(maxY - minY + 1));
     const maskY = (1 << widthY) - 1;
-    function packUnsafe(value: Point2DLike) {
+    function packUnsafe(value: Point2DLike): number {
       return ((value.x - minX) << widthY) | (value.y - minY);
     }
-    function unpackUnsafe(value: number) {
-      return new Point2D((value >> widthY) + minX, (value & maskY) + minY);
+    function unpackUnsafe(value: number): Point2DLike {
+      return { x: (value >> widthY) + minX, y: (value & maskY) + minY };
     }
     return {
       packUnsafe,
