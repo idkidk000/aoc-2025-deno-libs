@@ -39,6 +39,6 @@ export class HashedMap<Key, Value, Hash extends string | number | bigint> {
     return this.#map.values().map(({ value }) => value);
   }
   public [inspect.custom]() {
-    return this.entries();
+    return this.entries().toArray();
   }
 }

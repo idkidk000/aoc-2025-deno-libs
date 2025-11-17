@@ -75,9 +75,6 @@ export class PackedSet<Key, Packed extends string | number | bigint> {
   public [Symbol.iterator]() {
     return this.keys();
   }
-  public get [Symbol.toStringTag]() {
-    return '[object PackedSet]';
-  }
   public [inspect.custom]() {
     return this.keys().toArray();
   }

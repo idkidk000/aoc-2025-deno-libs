@@ -1,89 +1,104 @@
 import { Grid } from '@/lib/grid.0.ts';
 import { Logger } from '@/lib/logger.0.ts';
 import { ansiStyles } from '../lib/misc.0.ts';
+import { MathsUtils } from '../lib/maths-utils.0.ts';
 
 const logger = new Logger(import.meta.url);
-// const rows = 3;
-// const cols = 5;
+const systems = ['rc', 'xy'] as const;
+type System = (typeof systems)[number];
 
-// const gridXy = new Grid('xy', { rows, cols }, () => Math.round(Math.random() * 9));
-// logger.info(gridXy);
+const measureTimes = ['construct', 'cellIter', 'rowIter', 'colIter'] as const;
+type Time = (typeof measureTimes)[number];
 
-// for (let a = 0; a < Math.max(rows, cols); ++a) {
-//   const x = Math.min(a, cols - 1);
-//   const y = Math.min(a, rows - 1);
-//   const i = gridXy.coordToIndex(x, y);
-//   const coord = gridXy.indexToCoord(i);
-//   const val = gridXy.get(x, y);
-//   logger.info({ x, y, i, coord, val });
-// }
+const tests = ['entries', 'coord', 'set', 'find'] as const;
+type Test = (typeof tests)[number];
 
-// const gridRc = new Grid('rc', { rows, cols }, () => Math.round(Math.random() * 9));
-// logger.info(gridRc);
+const results: Record<System, {
+  pass: Record<Test, boolean>;
+  time: Record<Time, number>;
+}[]> = {
+  rc: [],
+  xy: [],
+};
+const [size, runs] = Deno.args.includes('-vfast') ? [10, 1] : Deno.args.includes('-fast') ? [1_000, 10] : [10_000, 10];
+for (let run = 0; run < runs; ++run) {
+  for (const system of ['rc', 'xy'] as const) {
+    const constructStart = performance.now();
+    const grid = new Grid(
+      system,
+      { rows: Math.max(1, Math.round(Math.random() * size)), cols: Math.max(1, Math.round(Math.random() * size)), fill: ({ i }) => i },
+    );
+    const constructTime = performance.now() - constructStart;
 
-// for (let a = 0; a < Math.max(rows, cols); ++a) {
-//   const r = Math.min(a, rows - 1);
-//   const c = Math.min(a, cols - 1);
-//   const i = gridRc.coordToIndex(r, c);
-//   const coord = gridRc.indexToCoord(i);
-//   const val = gridRc.get(r, c);
-//   logger.info({ r, c, i, coord, val });
-// }
+    const entriesPass = grid.cellEntries().every(([{ i }, cell]) => cell === i);
+    const coordPass = grid.cellEntries().every(([coord]) =>
+      (system === 'rc' ? grid.coordToIndex(coord.r, coord.c) : grid.coordToIndex(coord.x, coord.y)) === coord.i
+    );
 
-const results = { xy: { throws: 0, invalid: 0, ok: 0 }, rc: { throws: 0, invalid: 0, ok: 0 } };
-for (let run = 0; run < 100; ++run) {
-  const rows = Math.round(Math.random() * 1000);
-  const cols = Math.round(Math.random() * 1000);
-  logger.info({ run, rows, cols });
-  const gridXy = new Grid('xy', { rows, cols, fill: () => 0 });
-  let xyOk = true;
-  for (let x = 0; x < cols; ++x) {
-    for (let y = 0; y < rows; ++y) {
-      try {
-        const prev = gridXy.get(x, y);
-        const next = gridXy.set(x, y, 1);
-        const i = gridXy.coordToIndex(x, y);
-        const coord = gridXy.indexToCoord(i);
-        if (prev !== 0 || next !== 1 || coord.x !== x || coord.y !== y || coord.i !== i) {
-          logger.error({ run }, 'gridXy', { x, y, prev, next, i, coord });
-          ++results.xy.invalid;
-          xyOk = false;
-        }
-      } catch (err) {
-        logger.error({ run }, 'gridXy', { x, y }, err);
-        ++results.xy.throws;
-        xyOk = false;
+    let setPass = true;
+    for (let c = 0; c < grid.cols; ++c) {
+      for (let r = 0; r < grid.rows; ++r) {
+        const [a, b] = system === 'rc' ? [r, c] : [c, r];
+        const i = grid.coordToIndex(a, b);
+        const prev = grid.cellAt(a, b);
+        const next = grid.cellSet(a, b, 1);
+        if (prev !== i || next !== 1) setPass = false;
+        // logger.debugLow({ i, x, y, prev, next });
       }
     }
-  }
-  if (xyOk) ++results.xy.ok;
-  const gridRc = new Grid('rc', { rows, cols, fill: () => 0 });
-  let rcOk = true;
-  for (let r = 0; r < rows; ++r) {
-    for (let c = 0; c < cols; ++c) {
-      try {
-        const prev = gridRc.get(r, c);
-        const next = gridRc.set(r, c, 1);
-        const i = gridRc.coordToIndex(r, c);
-        const coord = gridRc.indexToCoord(i);
-        if (prev !== 0 || next !== 1 || coord.r !== r || coord.c !== c || coord.i !== i) {
-          logger.error({ run }, 'gridRc', { r, c, prev, next, i, coord });
-          ++results.rc.invalid;
-          rcOk = false;
-        }
-      } catch (err) {
-        logger.error({ run }, 'gridRc', { r, c }, err);
-        ++results.rc.throws;
-        rcOk = false;
-      }
+
+    let findPass = true;
+    for (let i = 0; i < size; ++i) {
+      const index = Math.round(Math.random() * (grid.length - 1));
+      const prev = grid.cellAt(index);
+      grid.cellSet(index, Infinity);
+      const findIndex = grid.find((value) => value === Infinity)?.i;
+      const findLastIndex = grid.findLast((value) => value === Infinity)?.i;
+      // deno-lint-ignore no-non-null-assertion
+      grid.cellSet(index, prev!);
+      if (index !== findIndex || index !== findLastIndex) findPass = false;
     }
+
+    const cellIterStart = performance.now();
+    grid.cellItems().toArray();
+    const cellIterTime = performance.now() - cellIterStart;
+
+    const rowIterStart = performance.now();
+    grid.rowItems().toArray();
+    const rowIterTime = performance.now() - rowIterStart;
+
+    const colIterStart = performance.now();
+    grid.colItems().toArray();
+    const colIterTime = performance.now() - colIterStart;
+
+    logger.debugLow({ run, size, system, entriesPass, coordPass, setPass, cellIterTime, rowIterTime, colIterTime });
+
+    results[system].push({
+      pass: { coord: coordPass, entries: entriesPass, set: setPass, find: findPass },
+      time: { cellIter: cellIterTime, colIter: colIterTime, rowIter: rowIterTime, construct: constructTime },
+    });
   }
-  if (rcOk) ++results.rc.ok;
 }
 
-logger[Object.values(results).some((val) => val.invalid || val.throws) ? 'error' : 'success'](results);
+for (const [key, data] of Object.entries(results)) {
+  const testResults = new Map(tests.map((test) => [test, data.every(({ pass }) => pass[test])] satisfies [Test, boolean]));
+  const pass = data.length && testResults.values().every((value) => value);
+  logger.info(
+    `${ansiStyles.bold}${key} ${pass ? ansiStyles.fgIntense.green : ansiStyles.fgIntense.red}${pass ? 'PASS' : 'FAIL'}${ansiStyles.reset}`,
+    ...testResults.entries().map(([test, result]) => `${result ? ansiStyles.fg.green : ansiStyles.fg.red}${test}${ansiStyles.reset}`),
+    { size, runs },
+  );
+  for (const time of measureTimes) {
+    const times = data.map((item) => item.time[time]);
+    const min = MathsUtils.roundTo(Math.min(...times));
+    const max = MathsUtils.roundTo(Math.max(...times));
+    const total = times.reduce((acc, item) => acc + item, 0);
+    const avg = MathsUtils.roundTo(total / (times.length || 1));
+    logger.info(`  ${time}`, { min, max, avg });
+  }
+}
 
-const grid = new Grid('rc', { cols: 10, rows: 10, fill: ({ r, c }) => (r + c) % 10 }, (v) => {
+const grid = new Grid('rc', { cols: 5, rows: 5, fill: ({ r, c }) => (r + c) % 10 }, (v) => {
   switch (Math.round(Math.random() * 5)) {
     case 0:
       return `${ansiStyles.bold}${ansiStyles.fgIntense.blue}${v}${ansiStyles.reset}`;

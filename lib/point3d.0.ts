@@ -86,6 +86,11 @@ export class Point3D implements Point3DLike {
   public dist(other: Point3DLike) {
     return Math.sqrt(this.dist2(other));
   }
+  public dists(other: Point3D, abs = false): Point3DLike {
+    return abs
+      ? { x: Math.abs(this.x - other.x), y: Math.abs(this.y - other.y), z: Math.abs(this.z - other.z) }
+      : { x: this.x - other.x, y: this.y - other.y, z: this.z - other.z };
+  }
   /** Sum of x, y, and z distances */
   public manhattan(other: Point3DLike) {
     return Math.abs(this.x - other.x) + Math.abs(this.y - other.y) + Math.abs(this.z - other.z);

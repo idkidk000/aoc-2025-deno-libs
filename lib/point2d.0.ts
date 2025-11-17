@@ -53,6 +53,9 @@ export class Point2D implements Point2DLike {
   public dist(other: Point2DLike) {
     return Math.sqrt(this.dist2(other));
   }
+  public dists(other: Point2DLike, abs = false): Point2DLike {
+    return abs ? { x: Math.abs(this.x - other.x), y: Math.abs(this.y = other.y) } : { x: this.x - other.x, y: (this.y = other.y) };
+  }
   /** Sum of x and y distances */
   public manhattan(other: Point2DLike) {
     return Math.abs(this.x - other.x) + Math.abs(this.y - other.y);
@@ -116,18 +119,8 @@ export class Point2D implements Point2DLike {
       packUnsafe,
       /** throws on non-integer and oob */
       pack(value: Point2DLike) {
-        if (
-          !(
-            Number.isInteger(value.x) &&
-            Number.isInteger(value.y) &&
-            value.x >= minX &&
-            value.x <= maxX &&
-            value.y >= minY &&
-            value.y <= maxY
-          )
-        ) {
+        if (!(Number.isInteger(value.x) && Number.isInteger(value.y) && value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY))
           throw new Error('only in-bounds integers can be packed');
-        }
         return packUnsafe(value);
       },
       unpackUnsafe,

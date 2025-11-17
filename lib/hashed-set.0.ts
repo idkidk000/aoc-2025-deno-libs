@@ -71,10 +71,7 @@ export class HashedSet<Key, Hash extends string | number | bigint> {
   public [Symbol.iterator]() {
     return this.keys();
   }
-  public get [Symbol.toStringTag]() {
-    return '[object PackedSet]';
-  }
   public [inspect.custom]() {
-    return this.keys();
+    return this.entries().toArray();
   }
 }

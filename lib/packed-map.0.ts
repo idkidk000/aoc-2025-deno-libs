@@ -46,6 +46,6 @@ export class PackedMap<Key, Value, Packed extends string | number | bigint> {
     return this.#map.values();
   }
   public [inspect.custom]() {
-    return this.entries();
+    return this.entries().toArray();
   }
 }

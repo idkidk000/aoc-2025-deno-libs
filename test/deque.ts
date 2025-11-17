@@ -1,7 +1,7 @@
 import { Logger } from '../lib/logger.0.ts';
 import { MathsUtils } from '../lib/maths-utils.0.ts';
 import { ansiStyles } from '../lib/misc.0.ts';
-import { Deque } from '../lib/deque.0.ts';
+import { Deque, DequeDelete } from '../lib/deque.0.ts';
 
 const logger = new Logger(import.meta.url);
 const runs = 10;
@@ -19,7 +19,7 @@ const results: Record<Test, { push: number; pop: number; iter: number; iterPass:
 for (let run = 0; run < runs; ++run) {
   const input = Array.from({ length }, (_, i) => i);
   for (const test of tests) {
-    const deque = new Deque<number>();
+    const deque = new Deque<number>(undefined, { deleteAfterPop: DequeDelete.None });
     const pushStarted = performance.now();
     if (test === 'backBack' || test === 'backFront') { for (const item of input) deque.pushBack(item); }
     else if (test === 'frontBack' || test === 'frontFront') { for (const item of input) deque.pushFront(item); }

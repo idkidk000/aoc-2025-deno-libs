@@ -69,13 +69,35 @@ export class BinaryHeap<Item> {
     }
     return root;
   }
-  /** convenience method. `while (instance.length) instance.pop()` is faster */
-  public *items(): Generator<Item, void, void> {
+  /** **Destructive** convenience method. `while (instance.length) instance.pop()` is faster */
+  public *popAll(): Generator<Item, void, void> {
     // deno-lint-ignore no-non-null-assertion
     while (this.#array.length) yield (this.pop()!);
   }
+  /** **Non-destructive** - iterates over a copy */
+  public *items(): Generator<Item, void, void> {
+    // `toSorted` is faster on smaller arrays. creating a new heap is faster on larger
+    if (this.#array.length < 50_000) { for (const item of this.#array.toSorted(this.comparator)) yield item; }
+    else {
+      const heap = new BinaryHeap(this.comparator);
+      heap.#array = [...this.#array];
+      // deno-lint-ignore no-non-null-assertion
+      while (heap.length) yield (heap.pop()!);
+    }
+  }
+  /** **Non-destructive** - iterates over a copy */
+  public *entries(): Generator<[number, Item], void, void> {
+    if (this.#array.length < 50_000) { for (const [i, item] of this.#array.toSorted(this.comparator).entries()) yield [i, item]; }
+    else {
+      const heap = new BinaryHeap(this.comparator);
+      heap.#array = [...this.#array];
+      let i = 0;
+      // deno-lint-ignore no-non-null-assertion
+      while (heap.length) yield [i++, heap.pop()!];
+    }
+  }
   public [inspect.custom]() {
-    return this.#array;
+    return this.#array.toSorted(this.comparator);
   }
   public [Symbol.iterator]() {
     return this.items();
