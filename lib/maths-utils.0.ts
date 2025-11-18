@@ -26,7 +26,7 @@ export const MathsUtils = {
   factorial,
   gcd,
   /** lowest common multiple */
-  lcm(...values: Array<number>): number {
+  lcm(...values: number[]): number {
     return values.reduce((acc, item) => (acc * item) / gcd(acc, item));
   },
   /** linear interpolate */
@@ -45,8 +45,15 @@ export const MathsUtils = {
     if (infinite || (line0Distance >= 0 && line0Distance <= 1 && line1Distance >= 0 && line1Distance <= 1))
       return { x: x0 + line0Distance * (x1 - x0), y: y0 + line0Distance * (y1 - y0) };
   },
-  minMax(...values: Array<number>): [number, number] {
+  minMax(...values: number[]): [number, number] {
     return values.reduce((acc, item) => [Math.min(acc[0], item), Math.max(acc[1], item)], [Infinity, -Infinity]);
+  },
+  sum(...values: number[]): number {
+    return values.reduce((acc, item) => acc + item, 0);
+  },
+  avg(...values: number[]): number {
+    const total = values.reduce((acc, item) => acc + item, 0);
+    return total / (values.length || 1);
   },
   /** positive modulo */
   modP(value: number, mod: number) {

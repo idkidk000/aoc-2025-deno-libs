@@ -1,6 +1,7 @@
 import { Logger } from '@/lib/logger.0.ts';
 import { SortedQueue } from '@/lib/sorted-queue.0.ts';
 import { BinaryHeap } from '@/lib/binary-heap.0.ts';
+import { MathsUtils } from '@/lib/maths-utils.0.ts';
 
 const logger = new Logger(import.meta.url);
 const results: Record<'queue' | 'heap', { writes: number[]; reads: number[]; invalid: number }> = {
@@ -67,10 +68,9 @@ for (let run = 0; run < 10; ++run) {
 Object.entries(results).forEach(([key, data]) => {
   logger[data.invalid ? 'error' : 'success'](key, { invalid: data.invalid });
   for (const test of ['writes', 'reads'] as const) {
-    const min = Math.min(...data[test]);
-    const max = Math.max(...data[test]);
-    const total = data[test].reduce((acc, item) => acc + item, 0);
-    const avg = total / (data[test].length || 1);
+    const times = data[test];
+    const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
+    const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
     logger.info(test, { min, max, avg });
   }
 });

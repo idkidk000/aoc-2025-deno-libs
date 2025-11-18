@@ -2,6 +2,7 @@
 import { HashedSet } from '@/lib/hashed-set.0.ts';
 import { Logger } from '@/lib/logger.0.ts';
 import { Point2D } from '@/lib/point2.0.ts';
+import { MathsUtils } from '@/lib/maths-utils.0.ts';
 
 const makePoints = () =>
   Array.from({ length: 1_000_000 }, () =>
@@ -49,10 +50,8 @@ for (let run = 0; run < 10; ++run) {
 Object.entries(results).forEach(([method, data]) => {
   logger[data.fail ? 'error' : 'success']({ method, fail: data.fail });
   Object.entries(data.times).forEach(([test, times]) => {
-    const min = Math.min(...times);
-    const max = Math.max(...times);
-    const total = times.reduce((acc, item) => acc + item, 0);
-    const avg = total / (times.length || 1);
+    const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
+    const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
     logger.info({ test, min, max, avg });
   });
 });

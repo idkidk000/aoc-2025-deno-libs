@@ -103,40 +103,40 @@ export class Point3D implements Point3DLike {
 
   // static versions of class methods
   public static add(value: Point3DLike, other: Point3DLike): Point3DLike {
-    return { x: value.x + other.x, y: value.y + other.y, z: value.z + other.z };
+    return { x: other.x + value.x, y: other.y + value.y, z: other.z + value.z };
   }
   public static sub(value: Point3DLike, other: Point3DLike): Point3DLike {
-    return { x: value.x - other.x, y: value.y - other.y, z: value.z - other.z };
+    return { x: other.x - value.x, y: other.y - value.y, z: other.z - value.z };
   }
   public static mult(value: Point3DLike, other: Point3DLike): Point3DLike;
   public static mult(value: Point3DLike, multiplier: number): Point3DLike;
   public static mult(value: Point3DLike, other: Point3DLike | number): Point3DLike {
     return typeof other === 'number'
-      ? { x: value.x * other, y: value.y * other, z: value.z * other }
-      : { x: value.x * other.x, y: value.y * other.y, z: value.z * other.z };
+      ? { x: other * value.x, y: other * value.y, z: other * value.z }
+      : { x: other.x * value.x, y: other.y * value.y, z: other.z * value.z };
   }
   public static eq(value: Point3DLike, other: Point3DLike): boolean {
-    return value.x === other.x && value.y === other.y && value.z === other.z;
+    return other.x === value.x && other.y === value.y && other.z === value.z;
   }
   /** Sum of squared x and y distances */
   public static dist2(value: Point3DLike, other: Point3DLike): number {
-    return (value.x - other.x) ** 2 + (value.y - other.y) ** 2 + (value.z - other.z) ** 2;
+    return (other.x - value.x) ** 2 + (other.y - value.y) ** 2 + (other.z - value.z) ** 2;
   }
   public static dist(value: Point3DLike, other: Point3DLike): number {
     return Math.sqrt(Point3D.dist2(value, other));
   }
   public static dists(value: Point3DLike, other: Point3DLike, abs = false): Point3DLike {
     return abs
-      ? { x: Math.abs(value.x - other.x), y: Math.abs(value.y - other.y), z: Math.abs(value.z - other.z) }
-      : { x: value.x - other.x, y: value.y - other.y, z: value.z - other.z };
+      ? { x: Math.abs(other.x - value.x), y: Math.abs(other.y - value.y), z: Math.abs(other.z - value.z) }
+      : { x: other.x - value.x, y: other.y - value.y, z: other.z - value.z };
   }
   /** Sum of x, y, and z distances */
   public static manhattan(value: Point3DLike, other: Point3DLike): number {
-    return Math.abs(value.x - other.x) + Math.abs(value.y - other.y) + Math.abs(value.z - other.z);
+    return Math.abs(other.x - value.x) + Math.abs(other.y - value.y) + Math.abs(other.z - value.z);
   }
   /** Max of x, y, and z distances */
   public static chebyshev(value: Point3DLike, other: Point3DLike): number {
-    return Math.max(Math.abs(value.x - other.x), Math.abs(value.y - other.y), Math.abs(value.z - other.z));
+    return Math.max(Math.abs(other.x - value.x), Math.abs(other.y - value.y), Math.abs(other.z - value.z));
   }
   public static *neighbours(value: Point3DLike, count: 6 | 26): Generator<Point3DLike, void, void> {
     if (count === 6) { for (const [x, y, z] of OFFSETS_6) yield Point3D.add(value, { x, y, z }); }

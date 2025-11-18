@@ -69,44 +69,50 @@ export class Point2D implements Point2DLike {
   public *neighbours(count: 4 | 8): Generator<Point2D, void, void> {
     for (const neighbour of Point2D.neighbours(this, count)) yield new Point2D(neighbour);
   }
+  public angle(other: Point2DLike): number {
+    return Point2D.angle(this, other);
+  }
 
   // static versions of class methods
   public static add(value: Point2DLike, other: Point2DLike): Point2DLike {
-    return { x: value.x + other.x, y: value.y + other.y };
+    return { x: other.x + value.x, y: other.y + value.y };
   }
   public static sub(value: Point2DLike, other: Point2DLike): Point2DLike {
-    return { x: value.x - other.x, y: value.y - other.y };
+    return { x: other.x - value.x, y: other.y - value.y };
   }
   public static mult(value: Point2DLike, other: Point2DLike): Point2DLike;
   public static mult(value: Point2DLike, multiplier: number): Point2DLike;
   public static mult(value: Point2DLike, other: Point2DLike | number): Point2DLike {
-    return typeof other === 'number' ? { x: value.x * other, y: value.y * other } : { x: value.x * other.x, y: value.y * other.y };
+    return typeof other === 'number' ? { x: other * value.x, y: other * value.y } : { x: other.x * value.x, y: other.y * value.y };
   }
   public static eq(value: Point2DLike, other: Point2DLike): boolean {
-    return value.x === other.x && value.y === other.y;
+    return other.x === value.x && other.y === value.y;
   }
   /** Sum of squared x and y distances */
   public static dist2(value: Point2DLike, other: Point2DLike): number {
-    return (value.x - other.x) ** 2 + (value.y - other.y) ** 2;
+    return (other.x - value.x) ** 2 + (other.y - value.y) ** 2;
   }
   public static dist(value: Point2DLike, other: Point2DLike): number {
     return Math.sqrt(Point2D.dist2(value, other));
   }
   public static dists(value: Point2DLike, other: Point2DLike, abs = false): Point2DLike {
-    return abs ? { x: Math.abs(value.x - other.x), y: Math.abs(value.y = other.y) } : { x: value.x - other.x, y: (value.y = other.y) };
+    return abs ? { x: Math.abs(other.x - value.x), y: Math.abs(other.y = value.y) } : { x: other.x - value.x, y: (other.y = value.y) };
   }
   /** Sum of x and y distances */
   public static manhattan(value: Point2DLike, other: Point2DLike): number {
-    return Math.abs(value.x - other.x) + Math.abs(value.y - other.y);
+    return Math.abs(other.x - value.x) + Math.abs(other.y - value.y);
   }
   /** Max of x and y distances */
   public static chebyshev(value: Point2DLike, other: Point2DLike): number {
-    return Math.max(Math.abs(value.x - other.x), Math.abs(value.y - other.y));
+    return Math.max(Math.abs(other.x - value.x), Math.abs(other.y - value.y));
   }
   public static *neighbours(value: Point2DLike, count: 4 | 8): Generator<Point2DLike, void, void> {
     if (count === 4) { for (const [x, y] of OFFSETS_4) yield Point2D.add(value, { x, y }); }
     else if (count === 8) { for (const [x, y] of OFFSETS_8) yield Point2D.add(value, { x, y }); }
     else { throw new Error('invalid neighbour count'); }
+  }
+  public static angle(value: Point2DLike, other: Point2DLike): number {
+    return Math.atan2(other.y - value.y, other.x - value.x);
   }
 
   // static utilities

@@ -41,9 +41,7 @@ logger.info(
 );
 for (const operation of ['write', 'read'] as const) {
   const times = results.map((result) => result[operation]);
-  const min = MathsUtils.roundTo(Math.min(...times));
-  const max = MathsUtils.roundTo(Math.max(...times));
-  const total = times.reduce((acc, item) => acc + item, 0);
-  const avg = MathsUtils.roundTo(total / (times.length || 1));
+  const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
+  const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
   logger.info(`  ${operation}`, { min, max, avg });
 }

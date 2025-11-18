@@ -1,5 +1,5 @@
-import { Logger } from '../lib/logger.0.ts';
-import { MathsUtils } from '../lib/maths-utils.0.ts';
+import { Logger } from '@/lib/logger.0.ts';
+import { MathsUtils } from '@/lib/maths-utils.0.ts';
 
 const size = 1000;
 const logger = new Logger(import.meta.url);
@@ -42,9 +42,7 @@ for (let run = 0; run < 10; ++run) {
 }
 
 for (const [method, times] of Object.entries(results)) {
-  const min = MathsUtils.roundTo(Math.min(...times));
-  const max = MathsUtils.roundTo(Math.max(...times));
-  const total = times.reduce((acc, item) => acc + item, 0);
-  const avg = MathsUtils.roundTo(total / (times.length || 1));
+  const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
+  const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
   logger.info(method, { min, max, avg });
 }

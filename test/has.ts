@@ -74,10 +74,8 @@ for (const [test, data] of Object.entries(results)) {
   );
   for (const method of ['construct', 'has'] as const) {
     const times = data.map((item) => item[method]);
-    const min = MathsUtils.roundTo(Math.min(...times));
-    const max = MathsUtils.roundTo(Math.max(...times));
-    const total = times.reduce((acc, item) => acc + item, 0);
-    const avg = MathsUtils.roundTo(total / (times.length || 1));
+    const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
+    const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
     logger.info('  ', method.padEnd(10, ' '), { min, max, avg });
   }
 }

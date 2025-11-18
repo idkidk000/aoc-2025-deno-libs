@@ -66,8 +66,7 @@ for (const [test, testData] of Object.entries(results)) {
   const popPass = testData.every(({ popPass }) => popPass);
 
   const pass = lengthPass && iterPass && popPass;
-  // deno-lint-ignore no-console
-  console.log(
+  logger.info(
     `${ansiStyles.bold}${test} ${pass ? `${ansiStyles.fgIntense.green}PASS` : `${ansiStyles.fgIntense.red}FAIL`}${ansiStyles.reset}`,
     ...[['length', lengthPass], ['iter', iterPass], ['pop', popPass]].map(([label, value]) =>
       `${value ? ansiStyles.fg.green : ansiStyles.fg.red}${label}${ansiStyles.reset}`
@@ -75,11 +74,8 @@ for (const [test, testData] of Object.entries(results)) {
   );
   for (const operation of ['push', 'iter', 'pop'] as const) {
     const times = testData.map((item) => item[operation]);
-    const min = MathsUtils.roundTo(Math.min(...times));
-    const max = MathsUtils.roundTo(Math.max(...times));
-    const total = times.reduce((acc, item) => acc + item, 0);
-    const avg = MathsUtils.roundTo(total / (times.length || 1));
-    // deno-lint-ignore no-console
-    console.log(`  ${operation}`, { min, max, avg });
+    const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
+    const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
+    logger.info(`  ${operation}`, { min, max, avg });
   }
 }

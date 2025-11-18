@@ -120,10 +120,8 @@ Object.entries(results).forEach(([method, methodData]) => {
     console.log(`  ${test}: ${testPass ? PASS : FAIL}`);
     for (const operation of operations) {
       const times = testData.map((item) => item[operation]).filter((item) => item !== -1);
-      const min = MathsUtils.roundTo(Math.min(...times));
-      const max = MathsUtils.roundTo(Math.max(...times));
-      const total = times.reduce((acc, item) => acc + item, 0);
-      const avg = MathsUtils.roundTo(total / (times.length || 1));
+      const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
+      const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
       const throws = runs - times.length;
       // deno-lint-ignore no-console
       console.log(`    ${operation}`, { min, max, avg, throws });
