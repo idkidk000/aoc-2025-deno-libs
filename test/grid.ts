@@ -1,4 +1,4 @@
-import { Grid } from '@/lib/grid.0.ts';
+import { CoordSystem, Grid } from '@/lib/grid.0.ts';
 import { ansiStyles, Logger } from '@/lib/logger.0.ts';
 import { MathsUtils } from '@/lib/maths-utils.0.ts';
 
@@ -24,8 +24,8 @@ for (let run = 0; run < runs; ++run) {
   for (const system of ['rc', 'xy'] as const) {
     const constructStart = performance.now();
     const grid = new Grid(
-      system,
       { rows: Math.max(1, Math.round(Math.random() * size)), cols: Math.max(1, Math.round(Math.random() * size)), fill: ({ i }) => i },
+      system === 'rc' ? CoordSystem.Rc : CoordSystem.Xy,
     );
     const constructTime = performance.now() - constructStart;
 
@@ -97,7 +97,7 @@ for (const [key, data] of Object.entries(results)) {
   }
 }
 
-const grid = new Grid('rc', { cols: 5, rows: 5, fill: ({ r, c }) => (r + c) % 10 }, (v) => {
+const grid = new Grid({ cols: 5, rows: 5, fill: ({ r, c }) => (r + c) % 10 }, CoordSystem.Rc, (v) => {
   switch (Math.round(Math.random() * 5)) {
     case 0:
       return `${ansiStyles.bold}${ansiStyles.fgIntense.blue}${v}${ansiStyles.reset}`;

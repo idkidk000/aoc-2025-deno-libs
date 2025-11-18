@@ -1,5 +1,7 @@
 import { inspect } from 'node:util';
 
+// TODO: try to get typed `this` working in overloads
+
 export interface GridCoord {
   x: number;
   y: number;
@@ -7,38 +9,79 @@ export interface GridCoord {
   c: number;
   i: number;
 }
-export type GridOptions<Cell> = { rows: number; cols: number; fill: (coord: GridCoord) => Cell };
+export type GridOptionsWithFill<Cell> = { rows: number; cols: number; fill: (coord: GridCoord) => Cell };
+export type GridOptionsWithCells<Cell> = { cells: Cell[]; cols: number };
 export type CellInspector<Cell> = (cell: Cell, coord: GridCoord) => string;
-export type CoordSystem = 'rc' | 'xy';
 
-export class Grid<Cell> {
+export enum CoordSystem {
+  Rc,
+  Xy,
+}
+
+export enum GridAxis {
+  Horizontal,
+  Vertical,
+}
+
+export class Grid<Cell, CoordSystem> {
   #rows: number;
   #cols: number;
   #array: Cell[];
-  constructor(system: CoordSystem, options: GridOptions<Cell>, inspector?: CellInspector<Cell>);
-  constructor(system: CoordSystem, data: Cell[][], inspector?: CellInspector<Cell>);
-  constructor(system: CoordSystem, grid: Grid<Cell>, inspector?: CellInspector<Cell>);
+  public readonly system: CoordSystem;
+  public readonly inspector?: CellInspector<Cell>;
+  constructor(data: Cell[][], system: CoordSystem, inspector?: CellInspector<Cell>);
+  constructor(data: GridOptionsWithFill<Cell>, system: CoordSystem, inspector?: CellInspector<Cell>);
+  constructor(data: GridOptionsWithCells<Cell>, system: CoordSystem, inspector?: CellInspector<Cell>);
+  constructor(data: Grid<Cell, CoordSystem>);
   constructor(
-    public readonly system: CoordSystem,
-    param: Cell[][] | GridOptions<Cell> | Grid<Cell>,
-    public readonly inspector?: CellInspector<Cell>,
+    data: Grid<Cell, CoordSystem> | Cell[][] | GridOptionsWithFill<Cell> | GridOptionsWithCells<Cell>,
+    system?: CoordSystem,
+    inspector?: CellInspector<Cell>,
   ) {
-    if (Array.isArray(param)) {
-      this.#rows = param.length;
-      this.#cols = param.length ? param[0].length : 0;
-      this.#array = param.flat(1);
-    } else if (param instanceof Grid) {
-      this.#rows = param.#rows;
-      this.#cols = param.#cols;
-      this.#array = param.#array;
-    } else if ('rows' in param) {
-      this.#rows = param.rows;
-      this.#cols = param.cols;
-      this.#array = Array.from({ length: param.rows * param.cols }, (_, i) => param.fill(this.indexToCoord(i)));
-    } else {
-      throw new Error('invalid constructor params');
-    }
+    if (data instanceof Grid) {
+      // Grid
+      this.#rows = data.#rows;
+      this.#cols = data.#cols;
+      this.#array = [...data.#array];
+      this.system = data.system;
+      this.inspector = data.inspector;
+    } else if (typeof system !== 'undefined') {
+      this.system = system;
+      this.inspector = inspector;
+      if (Array.isArray(data)) {
+        // Cell[][]
+        this.#rows = data.length;
+        this.#cols = data.length ? data[0].length : 0;
+        this.#array = data.flat(1);
+      } else if (data && 'fill' in data) {
+        // GridOptionsWithFill
+        this.#rows = data.rows;
+        this.#cols = data.cols;
+        this.#array = Array.from({ length: data.rows * data.cols }, (_, i) => data.fill(this.#unsafeIndexToCoord(i)));
+      } else if (data && 'cells' in data) {
+        // GridOptionsWithCells
+        this.#rows = Math.floor(data.cells.length / (data.cols || 1));
+        this.#cols = data.cols;
+        this.#array = data.cells;
+      } else { throw new Error('invalid constructor params - unrecognised data'); }
+    } else { throw new Error('invalid constructor params - missing system'); }
   }
+
+  // public getters
+  public get rows() {
+    return this.#rows;
+  }
+  public get cols() {
+    return this.#cols;
+  }
+  public get internal() {
+    return this.#array;
+  }
+  public get length() {
+    return this.#array.length;
+  }
+
+  // private unsafe methods
   #unsafeIndexToCoord(i: number): GridCoord {
     const r = Math.floor(i / this.#cols);
     const c = i - r * this.#cols;
@@ -51,13 +94,15 @@ export class Grid<Cell> {
   #unsafeXyToIndex(x: number, y: number): number {
     return (this.#rows - y - 1) * this.#cols + x;
   }
+
+  // public methods
   public inBounds(x: number, y: number): boolean;
   public inBounds(r: number, c: number): boolean;
   public inBounds(i: number): boolean;
   public inBounds(p0: number, p1?: number): boolean {
     if (typeof p1 === 'undefined') return p0 >= 0 && p0 < this.#array.length;
-    const [r, c] = this.system === 'rc' ? [p0, p1] : [p1, p0];
-    return r >= 0 && r < this.#rows && c >= 0 && c < this.#cols;
+    const [r, c] = this.system === CoordSystem.Rc ? [p0, p1] : [p1, p0];
+    return r >= 0 && r <= this.#rows - 1 && c >= 0 && c <= this.#cols - 1;
   }
   /** Throws on oob */
   public indexToCoord(i: number): GridCoord {
@@ -70,7 +115,7 @@ export class Grid<Cell> {
   public coordToIndex(r: number, c: number): number;
   public coordToIndex(p0: number, p1: number): number {
     if (!this.inBounds(p0, p1)) throw new Error('out of bounds');
-    return this.system === 'rc' ? this.#unsafeRcToIndex(p0, p1) : this.#unsafeXyToIndex(p0, p1);
+    return this.system === CoordSystem.Rc ? this.#unsafeRcToIndex(p0, p1) : this.#unsafeXyToIndex(p0, p1);
   }
   public find(predicate: (value: Cell, coord: GridCoord) => boolean): (GridCoord & { value: Cell }) | undefined {
     const index = this.#array.findIndex((value, i) => predicate(value, this.#unsafeIndexToCoord(i)));
@@ -80,15 +125,8 @@ export class Grid<Cell> {
     const index = this.#array.findLastIndex((value, i) => predicate(value, this.#unsafeIndexToCoord(i)));
     if (index > -1) return { ...this.#unsafeIndexToCoord(index), value: this.#array[index] };
   }
-  public get rows() {
-    return this.#rows;
-  }
-  public get cols() {
-    return this.#cols;
-  }
-  public get internal() {
-    return this.#array;
-  }
+
+  // row/col/cell iterator, get, and set methods
   public *rowItems(): Generator<Cell[], void, void> {
     for (let r = 0; r < this.#rows; ++r) yield this.#array.slice(r * this.#cols, (r + 1) * this.#cols);
   }
@@ -100,7 +138,7 @@ export class Grid<Cell> {
   public rowAt(y: number): Cell[] | undefined;
   public rowAt(p0: number): Cell[] | undefined {
     if (p0 < 0 || p0 > this.#rows - 1) return;
-    const r = this.system === 'rc' ? p0 : this.#rows - 1 - p0;
+    const r = this.system === CoordSystem.Rc ? p0 : this.#rows - 1 - p0;
     return this.#array.slice(r * this.#cols, (r + 1) * this.#cols);
   }
   public *colItems(): Generator<Cell[], void, void> {
@@ -137,7 +175,7 @@ export class Grid<Cell> {
   public cellAt(p0: number, p1?: number): Cell | undefined {
     if (typeof p1 === 'undefined') return this.#array.at(p0);
     if (!this.inBounds(p0, p1)) return;
-    return this.#array[this.system === 'rc' ? this.#unsafeRcToIndex(p0, p1) : this.#unsafeXyToIndex(p0, p1)];
+    return this.#array[this.system === CoordSystem.Rc ? this.#unsafeRcToIndex(p0, p1) : this.#unsafeXyToIndex(p0, p1)];
   }
   public cellSet(r: number, c: number, value: Cell): Cell;
   public cellSet(x: number, y: number, value: Cell): Cell;
@@ -149,49 +187,104 @@ export class Grid<Cell> {
       return p1 as Cell;
     }
     if (!this.inBounds(p0, p1 as number)) throw new Error('out of bounds');
-    this.#array[this.system === 'rc' ? this.#unsafeRcToIndex(p0, p1 as number) : this.#unsafeXyToIndex(p0, p1 as number)] = p2;
+    this.#array[this.system === CoordSystem.Rc ? this.#unsafeRcToIndex(p0, p1 as number) : this.#unsafeXyToIndex(p0, p1 as number)] = p2;
     return p2;
   }
+  public cellSetAll(updater: (prev: Cell, coord: GridCoord) => Cell): void {
+    for (const [i, prev] of this.#array.entries()) this.#array[i] = updater(prev, this.#unsafeIndexToCoord(i));
+  }
+
+  // local transforms
   /** Mutates this `Grid` instance */
   public rotate(angle: 90 | 180 | 270): this {
-    if (![90, 180, 270].includes(angle)) throw new Error('invalid rotation angle');
+    if (angle === 180) {
+      this.#array.reverse();
+      return this;
+    }
+    if (angle === 90 || angle === 270) {
+      const array = new Array<Cell>(this.#array.length);
+      for (let r = 0; r < this.#rows; ++r) {
+        for (let c = 0; c < this.#cols; ++c) {
+          const value = this.#array[this.#unsafeRcToIndex(r, c)];
+          if (angle === 90) array[c * this.#rows + (this.#rows - 1 - r)] = value;
+          else if (angle === 270) array[(this.#cols - 1 - c) * this.#rows + r] = value;
+        }
+      }
+      this.#array = array;
+      [this.#rows, this.#cols] = [this.#cols, this.#rows];
+      return this;
+    }
+    throw new Error('invalid rotation angle');
+  }
+  /** Mutates this `Grid` instance */
+  public mirror(axis: GridAxis): this {
+    if (![GridAxis.Horizontal, GridAxis.Vertical].includes(axis)) throw new Error('invalid mirror axis');
     const array = new Array<Cell>(this.#array.length);
     for (let r = 0; r < this.#rows; ++r) {
       for (let c = 0; c < this.#cols; ++c) {
         const value = this.#array[this.#unsafeRcToIndex(r, c)];
-        if (angle === 90) array[c * this.#rows + (this.#rows - 1 - r)] = value;
-        else if (angle === 180) array[(this.#rows - 1 - r) * this.#cols + (this.#cols - 1 - c)] = value;
-        else if (angle === 270) array[(this.#cols - 1 - c) * this.#rows + r] = value;
+        if (axis === GridAxis.Horizontal) array[this.#unsafeRcToIndex(r, this.#cols - 1 - c)] = value;
+        else if (axis === GridAxis.Vertical) array[this.#unsafeRcToIndex(this.#rows - 1 - r, c)] = value;
       }
     }
     this.#array = array;
-    if (angle !== 180) [this.#rows, this.#cols] = [this.#cols, this.#rows];
     return this;
-  }
-  /** Returns a new `Grid` instance */
-  public toRotated(angle: 90 | 180 | 270): Grid<Cell> {
-    const grid = new Grid(this.system, this, this.inspector);
-    return grid.rotate(angle);
   }
   /** Mutates this `Grid` instance */
-  public reverse(): this {
-    this.#array.reverse();
+  public translate(x: number, y: number): this;
+  public translate(r: number, c: number): this;
+  public translate(p0: number, p1: number): this {
+    // mod here will not impact performance
+    const [offsetR, offsetC] = this.system === CoordSystem.Rc ? [p0 % this.#rows, p1 % this.#cols] : [p1 % this.#cols, p0 % this.#rows];
+    if (offsetR === 0 && offsetC === 0) return this;
+    const array = new Array<Cell>(this.#array.length);
+    for (let r = 0; r < this.#rows; ++r) {
+      const intermediateDestR = r + offsetR;
+      const destR = intermediateDestR < 0
+        ? intermediateDestR + this.#rows
+        : intermediateDestR > this.#rows - 1
+        ? intermediateDestR - this.#rows
+        : intermediateDestR;
+      for (let c = 0; c < this.#cols; ++c) {
+        const intermediateDestC = c + offsetC;
+        const destC = intermediateDestC < 0
+          ? intermediateDestC + this.#cols
+          : intermediateDestC > this.#cols - 1
+          ? intermediateDestC - this.#cols
+          : intermediateDestC;
+        array[this.#unsafeRcToIndex(destR, destC)] = this.#array[this.#unsafeRcToIndex(r, c)];
+      }
+    }
+    this.#array = array;
     return this;
   }
+
+  // copy transforms
   /** Returns a new `Grid` instance */
-  public toReversed(): Grid<Cell> {
-    const grid = new Grid(this.system, this, this.inspector);
-    grid.#array.reverse();
+  public toRotated(angle: 90 | 180 | 270): Grid<Cell, CoordSystem> {
+    const grid = new Grid(this);
+    return grid.rotate(angle);
+  }
+  /** Returns a new `Grid` instance */
+  public toMirrored(axis: GridAxis): Grid<Cell, CoordSystem> {
+    const grid = new Grid(this);
+    grid.mirror(axis);
     return grid;
   }
-  public get length() {
-    return this.#array.length;
+  /** Returns a new `Grid` instance */
+  public toTranslated(x: number, y: number): Grid<Cell, CoordSystem>;
+  public toTranslated(r: number, c: number): Grid<Cell, CoordSystem>;
+  public toTranslated(p0: number, p1: number): Grid<Cell, CoordSystem> {
+    const grid = new Grid(this);
+    grid.translate(p0, p1);
+    return grid;
   }
+
   public [inspect.custom]() {
     const maxLength = Math.floor(Math.log10(this.#rows));
     return `rows: ${this.#rows}, cols: ${this.#cols}\n${
       this.rowItems().map((row, r) =>
-        `${(this.system === 'rc' ? r : this.#rows - r - 1).toString().padStart(maxLength, '0')}: ${
+        `${(this.system === CoordSystem.Rc ? r : this.#rows - r - 1).toString().padStart(maxLength, '0')}: ${
           row.map((cell, c) => this.inspector?.(cell, this.#unsafeIndexToCoord(r * this.#cols + c)) ?? cell).join('')
         }`
       ).toArray().join('\n')

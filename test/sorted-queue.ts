@@ -58,7 +58,7 @@ for (let run = 0; run < 10; ++run) {
     return true;
   })();
 
-  logger[heapValid ? 'success' : 'error']('heap', { run, heapValid, heapWriteTime, heapReadTime });
+  logger[heapValid ? 'success' : 'error']('heapHas', { run, heapValid, heapWriteTime, heapReadTime });
   results.heap.reads.push(heapReadTime);
   results.heap.writes.push(heapWriteTime);
   if (!heapValid) ++results.heap.invalid;

@@ -1,15 +1,14 @@
-export class Counter<Item> extends Map<Item, number> {
-  #initial: number;
-  constructor(iterable?: Iterable<[Item, number]>, initial = 0) {
+export class Counter<Key, Value extends number | bigint> extends Map<Key, Value> {
+  constructor(public readonly starting: Value, public readonly defaultAdd: Value, iterable?: Iterable<[Key, Value]>) {
     super(iterable ? iterable : null);
-    this.#initial = initial;
   }
-  public add(item: Item, count = 1) {
-    const value = ((this.get(item)) ?? this.#initial) + count;
+  public add(item: Key, count?: Value): Value {
+    // @ts-expect-error actually operator + **can** be applied to types Value + Value
+    const value = (this.get(item) ?? this.starting) + (count ?? this.defaultAdd);
     this.set(item, value);
     return value;
   }
-  public sub(item: Item, count = 1) {
-    return this.add(item, -count);
+  public override forEach(callbackfn: (value: Value, key: Key, counter: Counter<Key, Value>) => void): void {
+    return super.forEach((value, key) => callbackfn(value, key, this));
   }
 }

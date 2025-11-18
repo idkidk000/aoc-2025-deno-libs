@@ -12,9 +12,7 @@ export class HashedSet<Key, Hash extends string | number | bigint> {
     iterable?: Iterable<Key>,
     hashedIterable?: Iterable<[Hash, Key]>,
   ) {
-    this.#map = new Map<Hash, Key>(
-      iterable ? [...iterable].map((key) => [hasher(key), key]) : hashedIterable ? hashedIterable : null,
-    );
+    this.#map = new Map<Hash, Key>((iterable ? [...iterable].map((key) => [hasher(key), key]) : hashedIterable) ?? null);
   }
   public add(key: Key): this {
     this.#map.set(this.hasher(key), key);

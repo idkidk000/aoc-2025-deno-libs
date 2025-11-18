@@ -1,5 +1,3 @@
-// DONE
-
 export type Point2DTuple = [x: number, y: number];
 export interface Point2DLike {
   x: number;
@@ -44,7 +42,7 @@ export class Point2D implements Point2DLike {
   public mult(other: Point2DLike): Point2D;
   public mult(value: number): Point2D;
   public mult(other: Point2DLike | number): Point2D {
-    // @ts-expect-error i'm right you're wrong
+    // @ts-expect-error shush
     return new Point2D(Point2D.mult(this, other));
   }
   public eq(other: Point2DLike): boolean {

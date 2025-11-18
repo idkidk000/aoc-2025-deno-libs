@@ -13,9 +13,7 @@ export class PackedSet<Key, Packed extends string | number | bigint> {
     iterable?: Iterable<Key>,
     packedIterable?: Iterable<Packed>,
   ) {
-    this.#set = new Set<Packed>(
-      iterable ? [...iterable].map(packer) : packedIterable ? packedIterable : null,
-    );
+    this.#set = new Set<Packed>((iterable ? [...iterable].map(packer) : packedIterable) ?? null);
   }
   public add(key: Key): this {
     this.#set.add(this.packer(key));

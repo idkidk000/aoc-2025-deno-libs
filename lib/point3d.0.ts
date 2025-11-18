@@ -1,5 +1,3 @@
-// DONE
-
 export type Point3DTuple = [x: number, y: number, z: number];
 export interface Point3DLike {
   x: number;
@@ -75,7 +73,7 @@ export class Point3D implements Point3DLike {
   public mult(other: Point3DLike): Point3D;
   public mult(value: number): Point3D;
   public mult(other: Point3DLike | number): Point3D {
-    // @ts-expect-error i'm right you're wrong
+    // @ts-expect-error shush
     return new Point3D(Point3D.mult(this, other));
   }
   public eq(other: Point3DLike): boolean {

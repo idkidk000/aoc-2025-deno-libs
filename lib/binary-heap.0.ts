@@ -4,27 +4,31 @@ import { inspect } from 'node:util';
 const ITERATOR_COPY_THRESHOLD = 50_000;
 /**
  * root (array[0]) is the next item according to comparator
+ *
  * each parent has two children. the children's value values sort equally or lower than the parent's according to comparator
- * on push, the new item is placed at the end of the array (tip of the tree) and is swapped toward the root until comparator is satisfied. the tree is now sorted.
- * on pop, the root (array[0]) is returned. the last array item (tip of the tree) is then moved to the root and recursively tested against each child and swapped until comparator is satisfied. the tree is now sorted.
+ *
+ * on push, the new item is placed at the end of the array (leaf) and is swapped toward the root until comparator is satisfied. the tree is now sorted.
+ *
+ * on pop, the root (array[0]) is returned. the last array item (leaf) is then moved to the root and recursively tested against each child and swapped until comparator is satisfied. the tree is now sorted.
+ *
  * a sorted tree guarantees that the root (array[0]) is the next item, and that each item's children rank <= according to comparator. but last (array.at(-1)!) is not necessarily the last item according to comparator and there are no shortcuts for getting the nth item from the root - the root must be replaced with the last and that must be recursively swapped towards the correct position on each pop
  *
  * array indices:
+ * ```
  * 7 8
  *  3   4   5   6
  *    1       2
  *       0
- *
+ * ```
  * array values
+ * ```
  * 4 3
  *  1   0   1   1
  *    0       1
  *        0
+ * ```
+ * https://www.youtube.com/watch?v=AE5I0xACpZs
  */
-
-// useful: https://www.youtube.com/watch?v=AE5I0xACpZs
-// less so: https://en.wikipedia.org/wiki/Binary_heap
-
 export class BinaryHeap<Item> {
   #array: Item[] = [];
   constructor(public readonly comparator: (a: Item, b: Item) => number, iterable?: Iterable<Item>) {
@@ -32,6 +36,9 @@ export class BinaryHeap<Item> {
   }
   public get length() {
     return this.#array.length;
+  }
+  public get internal() {
+    return this.#array;
   }
   public push(...values: Item[]) {
     for (const value of values) {
@@ -71,10 +78,17 @@ export class BinaryHeap<Item> {
     }
     return root;
   }
+  public includes(value: Item): boolean {
+    return this.#array.includes(value);
+  }
+  public some(callback: (value: Item) => boolean): boolean {
+    for (const value of this.#array) if (callback(value)) return true;
+    return false;
+  }
   /** **Destructive** convenience method. `while (instance.length) instance.pop()` is faster */
   public *popAll(): Generator<Item, void, void> {
     // deno-lint-ignore no-non-null-assertion
-    while (this.#array.length) yield (this.pop()!);
+    while (this.#array.length) yield this.pop()!;
   }
   /** **Non-destructive** - iterates over a copy */
   public *items(): Generator<Item, void, void> {
@@ -84,7 +98,7 @@ export class BinaryHeap<Item> {
       const heap = new BinaryHeap(this.comparator);
       heap.#array = [...this.#array];
       // deno-lint-ignore no-non-null-assertion
-      while (heap.length) yield (heap.pop()!);
+      while (heap.length) yield heap.pop()!;
     }
   }
   /** **Non-destructive** - iterates over a copy */

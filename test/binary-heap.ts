@@ -36,8 +36,7 @@ for (let run = 0; run < runs; ++run) {
 }
 
 const pass = results.length && results.every(({ pass }) => pass);
-// deno-lint-ignore no-console
-console.log(
+logger.info(
   pass ? `${ansiStyles.bold}${ansiStyles.fgIntense.green}PASS${ansiStyles.reset}` : `${ansiStyles.bold}${ansiStyles.fgIntense.red}FAIL${ansiStyles.reset}`,
 );
 for (const operation of ['write', 'read'] as const) {
@@ -46,6 +45,5 @@ for (const operation of ['write', 'read'] as const) {
   const max = MathsUtils.roundTo(Math.max(...times));
   const total = times.reduce((acc, item) => acc + item, 0);
   const avg = MathsUtils.roundTo(total / (times.length || 1));
-  // deno-lint-ignore no-console
-  console.log(`  ${operation}`, { min, max, avg });
+  logger.info(`  ${operation}`, { min, max, avg });
 }
