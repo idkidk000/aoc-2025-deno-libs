@@ -14,9 +14,12 @@ const OFFSETS_4: Point2DTuple[] = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 const OFFSETS_8: Point2DTuple[] = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
 const INT64_MASK = (1n << 64n) - 1n;
 
-// these both refer to the same area in memory. preallocating and reusing is significantly faster than allocating and discarding on each call, but it's not async safe
+// these all refer to the same area in memory
 const float64Array = new Float64Array(2);
+// used in `pack` and `unpack`
 const bigUint64Array = new BigUint64Array(float64Array.buffer);
+// // used in `hash`
+// const uint32Array = new Uint32Array(float64Array.buffer);
 
 /** Classes have a performance penalty so all class methods are also available statically for `Point2DLike` objects */
 export class Point2D implements Point2DLike {
@@ -32,7 +35,7 @@ export class Point2D implements Point2DLike {
     else throw new Error('invalid constructor params');
   }
 
-  // these just wrap the static methods to save code duplication
+  // convenience wrappers of static methods
   public add(other: Point2DLike): Point2D {
     return new Point2D(Point2D.add(this, other));
   }
@@ -177,11 +180,78 @@ export class Point2D implements Point2DLike {
         return packUnsafe(value);
       },
       unpackUnsafe,
-      /** throws on negative, float, and >MAX_SAFE_INTEGER */
+      /** throws on negative, non-integer, and >MAX_SAFE_INTEGER */
       unpack(value: number) {
         if (value < 0 || !Number.isSafeInteger(value)) throw new Error('only safe positive integers can be unpacked');
         return unpackUnsafe(value);
       },
     };
   }
+  /** Similar performance to small int packer, handles floats
+   *
+   * Collision rates are quite poor at 0.125% for small ints and 0.012% for floats and large ints
+   *
+   * `pack` is guaranteed to have 0% collisions and the output is reversible, but bigints are slow
+   *
+   * every hash function i tried below costs more time and increases collisions
+   */
+  public static hash(value: Point2DLike): number {
+    const ix = Math.trunc(value.x);
+    const iy = Math.trunc(value.y);
+    const fx = (value.x - ix) * 1_000_000_000;
+    const fy = (value.y - iy) * 1_000_000_000;
+    return ix ^ (iy * 0xc2b2ae35) ^ (fx * 0x85ebca6b) ^ (fy * 0xe6546b64);
+  }
+  // public static hash2(value: Point2DLike): number {
+  //   float64Array[0] = value.x;
+  //   float64Array[1] = value.y;
+  //   const [xl, xh, yl, yh] = uint32Array;
+  //   return xl ^ (xh * 0xc2b2ae35) ^ (yl * 0x85ebca6b) ^ (yh * 0xe6546b64);
+  // }
+  // /** wyhash finaliser */
+  // static #mix32(value: number): number {
+  //   value ^= value >>> 16;
+  //   value = (value * 0x7feb352d) >>> 0;
+  //   value ^= value >>> 15;
+  //   value = (value * 0x846ca68b) >>> 0;
+  //   value ^= value >>> 16;
+  //   return value >>> 0;
+  // }
+  // static #mix64(value: number): number {
+  //   value = (value ^ (value >>> 32)) >>> 0;
+  //   value = Math.imul(value, 0xd6e8feb9) >>> 0;
+  //   value = (value ^ (value >>> 32)) >>> 0;
+  //   value = Math.imul(value, 0xa36d0f1f) >>> 0;
+  //   value = (value ^ (value >>> 32)) >>> 0;
+  //   return value;
+  // }
+  // public static hash2(value: Point2DLike): number {
+  //   float64Array[0] = value.x;
+  //   float64Array[1] = value.y;
+  //   const [xl, xh, yl, yh] = uint32Array;
+  //   // let hash = 0x9e3779b9;
+  //   // hash = Point2D.#mix32(hash ^ xl);
+  //   // hash = Point2D.#mix32(hash ^ xh);
+  //   // hash = Point2D.#mix32(hash ^ yl);
+  //   // hash = Point2D.#mix32(hash ^ yh);
+  //   // return hash;
+
+  //   // const hash = 0x9e3779b9 ^
+  //   //   (xl * 0x85ebca6b) ^
+  //   //   (xh * 0xc2b2ae35) ^
+  //   //   (yl * 0x165667b1) ^
+  //   //   (yh * 0xd3a2646c);
+
+  //   // return Point2D.#mix32(hash);
+
+  //   // 64-bit accumulation using two 32-bit lanes
+  //   let lo = 0x9e3779b1 ^ xl ^ (yl * 0x7feb352d);
+  //   let hi = 0x85ebca77 ^ xh ^ (yh * 0x846ca68b);
+
+  //   lo = Point2D.#mix64(lo);
+  //   hi = Point2D.#mix64(hi);
+
+  //   // fold to a 53-bit JS number
+  //   return ((hi & 0x1fffff) * 0x100000000) + (lo >>> 0);
+  // }
 }

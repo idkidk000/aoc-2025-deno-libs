@@ -1,6 +1,5 @@
 import { inspect } from 'node:util';
-
-// TODO: try to get typed `this` working in overloads
+import { Point2DLike } from './point2d.0.ts';
 
 export interface GridCoord {
   x: number;
@@ -23,19 +22,19 @@ export enum GridAxis {
   Vertical,
 }
 
-export class Grid<Cell, CoordSystem> {
+export class Grid<Cell, System extends CoordSystem> {
   #rows: number;
   #cols: number;
   #array: Cell[];
-  public readonly system: CoordSystem;
+  public readonly system: System;
   public readonly inspector?: CellInspector<Cell>;
-  constructor(data: Cell[][], system: CoordSystem, inspector?: CellInspector<Cell>);
-  constructor(data: GridOptionsWithFill<Cell>, system: CoordSystem, inspector?: CellInspector<Cell>);
-  constructor(data: GridOptionsWithCells<Cell>, system: CoordSystem, inspector?: CellInspector<Cell>);
-  constructor(data: Grid<Cell, CoordSystem>);
+  constructor(data: Cell[][], system: System, inspector?: CellInspector<Cell>);
+  constructor(data: GridOptionsWithFill<Cell>, system: System, inspector?: CellInspector<Cell>);
+  constructor(data: GridOptionsWithCells<Cell>, system: System, inspector?: CellInspector<Cell>);
+  constructor(data: Grid<Cell, System>);
   constructor(
-    data: Grid<Cell, CoordSystem> | Cell[][] | GridOptionsWithFill<Cell> | GridOptionsWithCells<Cell>,
-    system?: CoordSystem,
+    data: Grid<Cell, System> | Cell[][] | GridOptionsWithFill<Cell> | GridOptionsWithCells<Cell>,
+    system?: System,
     inspector?: CellInspector<Cell>,
   ) {
     if (data instanceof Grid) {
@@ -96,11 +95,16 @@ export class Grid<Cell, CoordSystem> {
   }
 
   // public methods
-  public inBounds(x: number, y: number): boolean;
-  public inBounds(r: number, c: number): boolean;
+  public inBounds(r: number, c: number): System extends CoordSystem.Rc ? boolean : never;
+  public inBounds(x: number, y: number): System extends CoordSystem.Xy ? boolean : never;
   public inBounds(i: number): boolean;
-  public inBounds(p0: number, p1?: number): boolean {
+  public inBounds(p: Point2DLike): boolean;
+  public inBounds(p0: number | Point2DLike, p1?: number) {
+    // Point2DLike
+    if (typeof p0 === 'object') return p0.x >= 0 && p0.x < this.#cols && p0.y >= 0 && p0.y < this.#rows;
+    // index
     if (typeof p1 === 'undefined') return p0 >= 0 && p0 < this.#array.length;
+    // r,c / x,y
     const [r, c] = this.system === CoordSystem.Rc ? [p0, p1] : [p1, p0];
     return r >= 0 && r <= this.#rows - 1 && c >= 0 && c <= this.#cols - 1;
   }
@@ -111,11 +115,17 @@ export class Grid<Cell, CoordSystem> {
     return this.#unsafeIndexToCoord(i);
   }
   /** Throws on oob */
-  public coordToIndex(x: number, y: number): number;
-  public coordToIndex(r: number, c: number): number;
-  public coordToIndex(p0: number, p1: number): number {
-    if (!this.inBounds(p0, p1)) throw new Error('out of bounds');
-    return this.system === CoordSystem.Rc ? this.#unsafeRcToIndex(p0, p1) : this.#unsafeXyToIndex(p0, p1);
+  public coordToIndex(r: number, c: number): System extends CoordSystem.Rc ? number : never;
+  public coordToIndex(x: number, y: number): System extends CoordSystem.Xy ? number : never;
+  public coordToIndex(p: Point2DLike): number;
+  public coordToIndex(p0: number | Point2DLike, p1?: number) {
+    // typescript can't match `p0: number | Point2DLike` from the func def to a single overload of `inBounds`. asserting the types has no runtime performance hit and is the least verbose workaround
+    if (!this.inBounds(p0 as number, p1 as number)) throw new Error('out of bounds');
+    return typeof p0 === 'object'
+      ? this.#unsafeXyToIndex(p0.x, p0.y)
+      : this.system === CoordSystem.Rc
+      ? this.#unsafeRcToIndex(p0, p1 as number)
+      : this.#unsafeXyToIndex(p0, p1 as number);
   }
   public find(predicate: (value: Cell, coord: GridCoord) => boolean): (GridCoord & { value: Cell }) | undefined {
     const index = this.#array.findIndex((value, i) => predicate(value, this.#unsafeIndexToCoord(i)));
@@ -134,9 +144,9 @@ export class Grid<Cell, CoordSystem> {
     for (let r = 0; r < this.#rows; ++r)
       yield [{ r, y: this.#rows - 1 - r }, this.#array.slice(r * this.#cols, (r + 1) * this.#cols)];
   }
-  public rowAt(r: number): Cell[] | undefined;
-  public rowAt(y: number): Cell[] | undefined;
-  public rowAt(p0: number): Cell[] | undefined {
+  public rowAt(r: number): System extends CoordSystem.Rc ? Cell[] | undefined : never;
+  public rowAt(y: number): System extends CoordSystem.Xy ? Cell[] | undefined : never;
+  public rowAt(p0: number) {
     if (p0 < 0 || p0 > this.#rows - 1) return;
     const r = this.system === CoordSystem.Rc ? p0 : this.#rows - 1 - p0;
     return this.#array.slice(r * this.#cols, (r + 1) * this.#cols);
@@ -155,8 +165,8 @@ export class Grid<Cell, CoordSystem> {
       yield [{ c, x: c }, col];
     }
   }
-  public colAt(c: number): Cell[] | undefined;
-  public colAt(x: number): Cell[] | undefined;
+  public colAt(c: number): System extends CoordSystem.Rc ? Cell[] | undefined : never;
+  public colAt(x: number): System extends CoordSystem.Xy ? Cell[] | undefined : never;
   public colAt(p0: number): Cell[] | undefined {
     if (p0 < 0 || p0 > this.#cols - 1) return;
     const col = new Array<Cell>(this.#rows);
@@ -169,25 +179,34 @@ export class Grid<Cell, CoordSystem> {
   public *cellEntries(): Generator<[GridCoord, Cell], void, void> {
     for (const [i, cell] of this.#array.entries()) yield [this.#unsafeIndexToCoord(i), cell];
   }
-  public cellAt(r: number, c: number): Cell | undefined;
-  public cellAt(x: number, y: number): Cell | undefined;
+  public cellAt(r: number, c: number): System extends CoordSystem.Rc ? Cell | undefined : never;
+  public cellAt(x: number, y: number): System extends CoordSystem.Xy ? Cell | undefined : never;
   public cellAt(i: number): Cell | undefined;
-  public cellAt(p0: number, p1?: number): Cell | undefined {
-    if (typeof p1 === 'undefined') return this.#array.at(p0);
-    if (!this.inBounds(p0, p1)) return;
-    return this.#array[this.system === CoordSystem.Rc ? this.#unsafeRcToIndex(p0, p1) : this.#unsafeXyToIndex(p0, p1)];
+  public cellAt(p: Point2DLike): Cell | undefined;
+  public cellAt(p0: number | Point2DLike, p1?: number) {
+    if (typeof p1 === 'undefined' && typeof p0 === 'number') return this.#array.at(p0);
+    if (!this.inBounds(p0 as number, p1 as number)) return;
+    return this
+      .#array[
+        typeof p0 === 'object'
+          ? this.#unsafeXyToIndex(p0.x, p0.y)
+          : this.system === CoordSystem.Rc
+          ? this.#unsafeRcToIndex(p0, p1 as number)
+          : this.#unsafeXyToIndex(p0, p1 as number)
+      ];
   }
-  public cellSet(r: number, c: number, value: Cell): Cell;
-  public cellSet(x: number, y: number, value: Cell): Cell;
+  public cellSet(r: number, c: number, value: Cell): System extends CoordSystem.Rc ? Cell : never;
+  public cellSet(x: number, y: number, value: Cell): System extends CoordSystem.Xy ? Cell : never;
   public cellSet(i: number, value: Cell): Cell;
-  public cellSet(p0: number, p1: number | Cell, p2?: Cell): Cell {
+  public cellSet(p: Point2DLike, value: Cell): Cell;
+  public cellSet(p0: number | Point2DLike, p1: number | Cell, p2?: Cell) {
     if (typeof p2 === 'undefined') {
-      if (!this.inBounds(p0)) throw new Error('out of bounds');
-      this.#array[p0] = p1 as Cell;
+      if (!this.inBounds(p0 as number)) throw new Error('out of bounds');
+      this.#array[typeof p0 === 'number' ? p0 : this.#unsafeXyToIndex(p0.x, p0.y)] = p1 as Cell;
       return p1 as Cell;
     }
-    if (!this.inBounds(p0, p1 as number)) throw new Error('out of bounds');
-    this.#array[this.system === CoordSystem.Rc ? this.#unsafeRcToIndex(p0, p1 as number) : this.#unsafeXyToIndex(p0, p1 as number)] = p2;
+    if (!this.inBounds(p0 as number, p1 as number)) throw new Error('out of bounds');
+    this.#array[this.system === CoordSystem.Rc ? this.#unsafeRcToIndex(p0 as number, p1 as number) : this.#unsafeXyToIndex(p0 as number, p1 as number)] = p2;
     return p2;
   }
   public cellSetAll(updater: (prev: Cell, coord: GridCoord) => Cell): void {
@@ -231,11 +250,16 @@ export class Grid<Cell, CoordSystem> {
     return this;
   }
   /** Mutates this `Grid` instance */
-  public translate(x: number, y: number): this;
-  public translate(r: number, c: number): this;
-  public translate(p0: number, p1: number): this {
+  public translate(x: number, y: number): System extends CoordSystem.Xy ? this : never;
+  public translate(r: number, c: number): System extends CoordSystem.Rc ? this : never;
+  public translate(p: Point2DLike): this;
+  public translate(p0: number | Point2DLike, p1?: number) {
     // mod here will not impact performance
-    const [offsetR, offsetC] = this.system === CoordSystem.Rc ? [p0 % this.#rows, p1 % this.#cols] : [p1 % this.#cols, p0 % this.#rows];
+    const [offsetR, offsetC] = typeof p0 === 'object'
+      ? [p0.y % this.#cols, p0.x % this.#rows]
+      : this.system === CoordSystem.Rc
+      ? [p0 % this.#rows, p1 as number % this.#cols]
+      : [p1 as number % this.#cols, p0 % this.#rows];
     if (offsetR === 0 && offsetC === 0) return this;
     const array = new Array<Cell>(this.#array.length);
     for (let r = 0; r < this.#rows; ++r) {
@@ -261,22 +285,23 @@ export class Grid<Cell, CoordSystem> {
 
   // copy transforms
   /** Returns a new `Grid` instance */
-  public toRotated(angle: 90 | 180 | 270): Grid<Cell, CoordSystem> {
+  public toRotated(angle: 90 | 180 | 270): Grid<Cell, System> {
     const grid = new Grid(this);
     return grid.rotate(angle);
   }
   /** Returns a new `Grid` instance */
-  public toMirrored(axis: GridAxis): Grid<Cell, CoordSystem> {
+  public toMirrored(axis: GridAxis): Grid<Cell, System> {
     const grid = new Grid(this);
     grid.mirror(axis);
     return grid;
   }
   /** Returns a new `Grid` instance */
-  public toTranslated(x: number, y: number): Grid<Cell, CoordSystem>;
-  public toTranslated(r: number, c: number): Grid<Cell, CoordSystem>;
-  public toTranslated(p0: number, p1: number): Grid<Cell, CoordSystem> {
+  public toTranslated(x: number, y: number): System extends CoordSystem.Xy ? Grid<Cell, System> : never;
+  public toTranslated(r: number, c: number): System extends CoordSystem.Rc ? Grid<Cell, System> : never;
+  public toTranslated(p: Point2DLike): Grid<Cell, System>;
+  public toTranslated(p0: number | Point2DLike, p1?: number) {
     const grid = new Grid(this);
-    grid.translate(p0, p1);
+    grid.translate(p0 as number, p1 as number);
     return grid;
   }
 

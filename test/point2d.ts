@@ -2,11 +2,10 @@ import { ansiStyles, Logger } from '@/lib/logger.0.ts';
 import { Bounds2D, Point2D } from '@/lib/point2d.0.ts';
 import { MathsUtils } from '@/lib/maths-utils.0.ts';
 
-const methods = ['smallInt', 'smallIntUnsafe', 'main'] as const;
+const methods = ['smallInt', 'smallIntUnsafe', 'main', 'hash'] as const;
 const tests = ['smallInt', 'largeInt', 'smallFloat', 'largeFloat'] as const;
 const operations = ['pack', 'unpack'] as const;
-const runs = 10;
-const length = Deno.args.includes('-fast') ? 1_000 : 1_000_000;
+const [runs, length] = Deno.args.includes('-vfast') ? [1, 1000] : Deno.args.includes('-fast') ? [5, 500_000] : [10, 1_000_000];
 const PASS = `${ansiStyles.bold}${ansiStyles.fgIntense.green}PASS${ansiStyles.reset}`;
 const FAIL = `${ansiStyles.bold}${ansiStyles.fgIntense.red}FAIL${ansiStyles.reset}`;
 
@@ -35,6 +34,12 @@ const results: Record<Method, Record<Test, (Record<Operation, number> & { pass: 
     smallFloat: [],
     largeFloat: [],
   },
+  hash: {
+    smallInt: [],
+    largeInt: [],
+    smallFloat: [],
+    largeFloat: [],
+  },
 };
 
 const makePoints = (test: Test) => {
@@ -57,46 +62,73 @@ const makePoints = (test: Test) => {
 
 const pack = (method: Method, points: Point2D[], bounds: Bounds2D) => {
   const packer = Point2D.makeSmallIntPacker(bounds);
+  const packed = new Array(points.length);
+  let i = 0;
+  const started = performance.now();
   switch (method) {
     case 'smallInt':
-      return points.map(packer.pack);
+      for (const point of points) packed[i++] = packer.pack(point);
+      break;
+      // return points.map(packer.pack);
     case 'smallIntUnsafe':
-      return points.map(packer.packUnsafe);
+      for (const point of points) packed[i++] = packer.packUnsafe(point);
+      break;
+      // return points.map(packer.packUnsafe);
     case 'main':
-      return points.map(Point2D.pack);
+      for (const point of points) packed[i++] = Point2D.pack(point);
+      break;
+      // return points.map(Point2D.pack);
+    case 'hash':
+      for (const point of points) packed[i++] = Point2D.hash(point);
+      break;
+      // return points.map(Point2D.hash);
     default:
-      throw new Error(`invalid pack method: ${method}`);
+      throw new Error(`unhandled pack method: ${method}`);
   }
+  const time = performance.now() - started;
+  return { packed, time };
 };
 
 const unpack = (method: Method, packed: number[] | bigint[], bounds: Bounds2D) => {
   const packer = Point2D.makeSmallIntPacker(bounds);
+  const unpacked = new Array(packed.length);
+  let i = 0;
+  const started = performance.now();
   switch (method) {
     case 'smallInt':
-      return (packed as number[]).map(packer.unpack);
+      for (const item of packed) unpacked[i++] = packer.unpack(item as number);
+      break;
+      // return (packed as number[]).map(packer.unpack);
     case 'smallIntUnsafe':
-      return (packed as number[]).map(packer.unpackUnsafe);
+      for (const item of packed) unpacked[i++] = packer.unpackUnsafe(item as number);
+      break;
+      // return (packed as number[]).map(packer.unpackUnsafe);
     case 'main':
-      return (packed as bigint[]).map(Point2D.unpack);
+      for (const item of packed) unpacked[i++] = Point2D.unpack(item as bigint);
+      break;
+      // return (packed as bigint[]).map(Point2D.unpack);
     default:
-      throw new Error(`invalid pack method: ${method}`);
+      return { unpacked: [], time: 0 };
   }
+  const time = performance.now() - started;
+  return { unpacked, time };
 };
+
+const wait = () => new Promise((resolve) => setTimeout(resolve, 100));
 
 for (const test of tests) {
   for (const method of methods) {
+    if ((method === 'smallInt' || method === 'smallIntUnsafe') && test !== 'smallInt') continue;
     for (let run = 0; run < runs; ++run) {
       try {
         const points = makePoints(test);
         const bounds = Point2D.bounds(points);
 
-        const packStart = performance.now();
-        const packed = pack(method, points, bounds);
-        const packTime = performance.now() - packStart;
+        await wait();
+        const { packed, time: packTime } = pack(method, points, bounds);
 
-        const unpackStart = performance.now();
-        const unpacked = unpack(method, packed, bounds);
-        const unpackTime = performance.now() - unpackStart;
+        await wait();
+        const { unpacked, time: unpackTime } = unpack(method, packed, bounds);
 
         const pass = unpacked.length === points.length && unpacked.every((point, i) => points[i].eq(point));
 
@@ -112,19 +144,17 @@ for (const test of tests) {
 
 Object.entries(results).forEach(([method, methodData]) => {
   const methodPass = Object.values(methodData).flat().every(({ pass }) => pass);
-  // deno-lint-ignore no-console
-  console.log(`\n${method}: ${methodPass ? PASS : FAIL}`);
+  logger.info(`${method}: ${methodPass ? PASS : FAIL}`);
   Object.entries(methodData).forEach(([test, testData]) => {
-    const testPass = testData.every(({ pass }) => pass);
-    // deno-lint-ignore no-console
-    console.log(`  ${test}: ${testPass ? PASS : FAIL}`);
+    if (!testData.length) return;
+    const testPass = testData.length && testData.every(({ pass }) => pass);
+    logger.info(`  ${test}: ${testPass ? PASS : FAIL}`);
     for (const operation of operations) {
       const times = testData.map((item) => item[operation]).filter((item) => item !== -1);
       const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
       const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
       const throws = runs - times.length;
-      // deno-lint-ignore no-console
-      console.log(`    ${operation}`, { min, max, avg, throws });
+      logger.info(`    ${operation}`, { min, max, avg, throws });
     }
   });
 });

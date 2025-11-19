@@ -44,7 +44,7 @@ const OFFSETS_26: Point3DTuple[] = [
 ];
 const INT64_MASK = (1n << 64n) - 1n;
 
-// these both refer to the same area in memory. preallocating and reusing is significantly faster than allocating and discarding on each call, but it's not async safe
+// these both refer to the same area in memory. preallocating and reusing is significantly faster than allocating and discarding on each call
 const float64Array = new Float64Array(3);
 const bigUint64Array = new BigUint64Array(float64Array.buffer);
 
@@ -63,7 +63,7 @@ export class Point3D implements Point3DLike {
     else throw new Error('invalid constructor params');
   }
 
-  // these just wrap the static methods to save code duplication
+  // convenience wrappers of static methods
   public add(other: Point3DLike): Point3D {
     return new Point3D(Point3D.add(this, other));
   }
@@ -227,7 +227,7 @@ export class Point3D implements Point3DLike {
         return packUnsafe(value);
       },
       unpackUnsafe,
-      /** throws on negative, float, and >MAX_SAFE_INTEGER */
+      /** throws on negative, non-integer, and >MAX_SAFE_INTEGER */
       unpack(value: number) {
         if (value < 0 || !Number.isSafeInteger(value)) throw new Error('only safe positive integers can be unpacked');
         return unpackUnsafe(value);
