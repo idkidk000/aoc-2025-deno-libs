@@ -19,7 +19,8 @@ const float64Array = new Float64Array(2);
 // used in `pack` and `unpack`
 const bigUint64Array = new BigUint64Array(float64Array.buffer);
 // // used in `hash`
-// const uint32Array = new Uint32Array(float64Array.buffer);
+const uint16Array = new Uint16Array(float64Array.buffer);
+// const uint8Array = new Uint8Array(float64Array.buffer);
 
 /** Classes have a performance penalty so all class methods are also available statically for `Point2DLike` objects */
 export class Point2D implements Point2DLike {
@@ -192,8 +193,6 @@ export class Point2D implements Point2DLike {
    * Collision rates are quite poor at 0.125% for small ints and 0.012% for floats and large ints
    *
    * `pack` is guaranteed to have 0% collisions and the output is reversible, but bigints are slow
-   *
-   * every hash function i tried below costs more time and increases collisions
    */
   public static hash(value: Point2DLike): number {
     const ix = Math.trunc(value.x);
@@ -202,56 +201,57 @@ export class Point2D implements Point2DLike {
     const fy = (value.y - iy) * 1_000_000_000;
     return ix ^ (iy * 0xc2b2ae35) ^ (fx * 0x85ebca6b) ^ (fy * 0xe6546b64);
   }
-  // public static hash2(value: Point2DLike): number {
-  //   float64Array[0] = value.x;
-  //   float64Array[1] = value.y;
-  //   const [xl, xh, yl, yh] = uint32Array;
-  //   return xl ^ (xh * 0xc2b2ae35) ^ (yl * 0x85ebca6b) ^ (yh * 0xe6546b64);
-  // }
-  // /** wyhash finaliser */
-  // static #mix32(value: number): number {
-  //   value ^= value >>> 16;
-  //   value = (value * 0x7feb352d) >>> 0;
-  //   value ^= value >>> 15;
-  //   value = (value * 0x846ca68b) >>> 0;
-  //   value ^= value >>> 16;
-  //   return value >>> 0;
-  // }
-  // static #mix64(value: number): number {
-  //   value = (value ^ (value >>> 32)) >>> 0;
-  //   value = Math.imul(value, 0xd6e8feb9) >>> 0;
-  //   value = (value ^ (value >>> 32)) >>> 0;
-  //   value = Math.imul(value, 0xa36d0f1f) >>> 0;
-  //   value = (value ^ (value >>> 32)) >>> 0;
-  //   return value;
-  // }
-  // public static hash2(value: Point2DLike): number {
-  //   float64Array[0] = value.x;
-  //   float64Array[1] = value.y;
-  //   const [xl, xh, yl, yh] = uint32Array;
-  //   // let hash = 0x9e3779b9;
-  //   // hash = Point2D.#mix32(hash ^ xl);
-  //   // hash = Point2D.#mix32(hash ^ xh);
-  //   // hash = Point2D.#mix32(hash ^ yl);
-  //   // hash = Point2D.#mix32(hash ^ yh);
-  //   // return hash;
+  /** this gives 0.013% collisions on small ints, 0.0005% on small floats, and 0% (over 10mn runs) for everything else */
+  public static hash2(value: Point2DLike): number {
+    // make sure integers fill the address space instead of leaving mostly 0s
+    float64Array[0] = value.x * Math.SQRT2;
+    float64Array[1] = value.y * Math.PI;
+    // this helps with small ints. not sure why since this is in the fractional part
+    uint16Array[3] *= 13;
+    // pack the two f64s into a single 64 bit space
+    // reordering these increases collision rates
+    uint16Array[0] ^= uint16Array[4];
+    uint16Array[1] ^= uint16Array[5];
+    uint16Array[2] ^= uint16Array[6];
+    uint16Array[3] ^= uint16Array[7];
+    return float64Array[0];
+  }
+  /** 0.004% for small ints, 0% for others. but the small int tests are expensive
+   * actually this gets really bad again for ints -100k - 100k
+   */
+  public static hash3(value: Point2DLike): number {
+    float64Array[0] = value.x * Math.SQRT2;
+    float64Array[1] = value.y * Math.PI;
 
-  //   // const hash = 0x9e3779b9 ^
-  //   //   (xl * 0x85ebca6b) ^
-  //   //   (xh * 0xc2b2ae35) ^
-  //   //   (yl * 0x165667b1) ^
-  //   //   (yh * 0xd3a2646c);
+    // uint8Array[0] ^= uint8Array[8];
+    // uint8Array[1] ^= uint8Array[9];
+    // uint8Array[2] ^= uint8Array[10];
+    // uint8Array[3] ^= uint8Array[11];
+    // uint8Array[4] ^= uint8Array[12];
+    // uint8Array[5] ^= uint8Array[13];
+    // if (Number.isInteger(value.x) && Number.isInteger(value.y) && Math.abs(value.x) < 10_000 && Math.abs(value.y) < 10_000) {
+    //   uint8Array[6] ^= uint8Array[15] ^ uint8Array[8];
+    //   uint8Array[7] ^= uint8Array[14] ^ uint8Array[9];
+    // } else {
+    //   uint8Array[6] ^= uint8Array[14];
+    //   uint8Array[7] ^= uint8Array[15];
+    // }
+    uint16Array[0] ^= uint16Array[4];
+    uint16Array[1] ^= uint16Array[5];
+    uint16Array[2] ^= uint16Array[6];
+    // TODO: simplify the condition
+    // if (Number.isInteger(value.x) && Number.isInteger(value.y) && Math.abs(value.x) < 10_000 && Math.abs(value.y) < 10_000) {
+    //   // uint8Array[6] ^= uint8Array[15] ^ uint8Array[8];
+    //   // uint8Array[7] ^= uint8Array[14] ^ uint8Array[9];
+    //   uint16Array[3] ^= ((uint16Array[7] << 8) | (uint16Array[7] >> 8)) ^ uint16Array[4];
+    // } else {
+    //   uint16Array[3] ^= uint16Array[7];
+    // }
 
-  //   // return Point2D.#mix32(hash);
+    uint16Array[3] ^= Math.abs(value.x) < (1 << 30) && Math.abs(value.y) < (1 << 30) && Number.isInteger(value.x) && Number.isInteger(value.y)
+      ? ((uint16Array[7] << 8) | (uint16Array[7] >> 8)) ^ uint16Array[4]
+      : uint16Array[7];
 
-  //   // 64-bit accumulation using two 32-bit lanes
-  //   let lo = 0x9e3779b1 ^ xl ^ (yl * 0x7feb352d);
-  //   let hi = 0x85ebca77 ^ xh ^ (yh * 0x846ca68b);
-
-  //   lo = Point2D.#mix64(lo);
-  //   hi = Point2D.#mix64(hi);
-
-  //   // fold to a 53-bit JS number
-  //   return ((hi & 0x1fffff) * 0x100000000) + (lo >>> 0);
-  // }
+    return float64Array[0];
+  }
 }
