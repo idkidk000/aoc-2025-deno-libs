@@ -151,10 +151,9 @@ export class Point2D implements Point2DLike {
    *
    * Use `pack32` for small integers and small low-precision floats
    *
-   * `Set` **hates** the output of this for small int inputs and will take 10x as long as you expect to process it. Maybe an alignment bug/misbehaviour in v8?
+   * **`Set` hates the output of this for small int inputs and will take 100x as long as you expect to process it** (22.9s vs 170ms). Maybe an alignment bug/misbehaviour in v8? Converting to a string first is faster.
    *
-   * Use `hash` if you just need to make a `Point2DLike` hashable
-   */
+   * Use `hash` if you just need to make a `Point2DLike` hashable */
   public static pack(value: Point2DLike): bigint {
     float64Array[0] = value.x;
     float64Array[1] = value.y;
@@ -169,7 +168,7 @@ export class Point2D implements Point2DLike {
   }
   /** Much faster than `pack` and slightly faster than `hash`
    *
-   * Use `pack` or `hash` for anything which doesn't fit into f32. */
+   * Only useful for small integers and small low-precision floats which can fit into f32 */
   public static pack32(value: Point2DLike): number {
     // reading the array buffer as a bigUint64 also works but it's not as fast, and takes longer to add to a set
     float32Array[0] = value.x;
@@ -181,31 +180,26 @@ export class Point2D implements Point2DLike {
     const [x, y] = float32Array;
     return { x, y };
   }
-  /** Much faster than `pack` and slightly slower than `pack32`
+  /** Much faster than `pack`, slightly slower than `pack32`
    *
-   * Collision rates are 0.0001% for small ints and 0% for everything else. Tested with 10 x 10mn clustered unique inputs */
+   * 0% collisions on 10m unique clustered inputs each of small int, small float, large int, large float */
   public static hash(value: Point2DLike): number {
-    // `node:crypto` has `createHash` but has string ins and outs so it's incredibly slow
-    // the two input f64s are uint16Array[0-7]
-    float64Array[0] = value.x;
-    float64Array[1] = value.y;
+    // fill out the epsilon. there's probably a better way to do this but it works and it's fast
+    float64Array[0] = value.x * Math.LOG2E;
+    float64Array[1] = value.y * Math.PI;
 
-    uint16Array[8] = uint16Array[0] * 13;
-    uint16Array[9] = uint16Array[1] * 31;
-    uint16Array[10] = uint16Array[2] * 61;
-    uint16Array[11] = uint16Array[3] * 127;
+    // mix f64[0] (uint16[0-3]) and f64[1] (uint16[4-7]) into f64[2] (uint16[8-11])
+    uint16Array[8] = uint16Array[0] ^ uint16Array[5] ^ (uint16Array[1] * 3) ^ (uint16Array[6] * 5);
+    uint16Array[9] = uint16Array[1] ^ uint16Array[6] ^ (uint16Array[2] * 7) ^ (uint16Array[7] * 9);
+    uint16Array[10] = uint16Array[2] ^ uint16Array[7] ^ (uint16Array[3] * 11) ^ (uint16Array[4] * 13);
+    uint16Array[11] = uint16Array[3] ^ uint16Array[4] ^ (uint16Array[0] * 15) ^ (uint16Array[5] * 17);
 
-    uint16Array[0] ^= uint16Array[7] ^ uint16Array[10];
-    uint16Array[1] ^= uint16Array[6] ^ uint16Array[8];
-    uint16Array[2] ^= uint16Array[5] ^ uint16Array[11];
-    uint16Array[3] ^= uint16Array[4] ^ uint16Array[9];
-
-    // if the exponent part is all on, the entire f64 is invalid and NaN is returned.
+    // if all the exponent bits are on, the entire f64 is invalid and NaN is returned.
     // https://en.wikipedia.org/wiki/Double-precision_floating-point_format
     // xor the top exponent bit somewhere else
-    uint16Array[2] ^= uint16Array[3] & 0x4000;
+    uint16Array[10] ^= uint16Array[11] & 0x4000;
     // then turn it off
-    uint16Array[3] &= 0xbfff;
-    return float64Array[0];
+    uint16Array[11] &= 0xbfff;
+    return float64Array[2];
   }
 }

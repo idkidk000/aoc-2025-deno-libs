@@ -80,20 +80,25 @@ export enum LogDate {
 export class Logger {
   #name: string;
   #levelValue: number;
-  #logDate: LogDate;
+  #showDate: LogDate;
+  #showLevel: boolean;
   #makePrefix(levelName: LevelName, colour: string) {
-    if (this.#logDate === LogDate.None) return `${ansiStyles.bold}${colour}[${levelName} ${this.#name}]${ansiStyles.reset}`;
     const now = new Date();
-    if (this.#logDate === LogDate.Time) {
-      return `${ansiStyles.bold}${colour}[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${
-        now.getSeconds().toString().padStart(2, '0')
-      }.${now.getMilliseconds().toString().padStart(3, '0')} ${levelName} ${this.#name}]${ansiStyles.reset}`;
-    }
-    return `${ansiStyles.bold}${colour}[${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')} ${
-      now.getHours().toString().padStart(2, '0')
-    }:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${
-      now.getMilliseconds().toString().padStart(3, '0')
-    } ${levelName} ${this.#name}]${ansiStyles.reset}`;
+    const parts = [
+      this.#showDate === LogDate.DateTime
+        ? `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')} ${
+          now.getHours().toString().padStart(2, '0')
+        }:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}`
+        : this.#showDate === LogDate.Time
+        ? `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${
+          now.getMilliseconds().toString().padStart(3, '0')
+        }`
+        : null,
+      this.#showLevel ? levelName : null,
+      this.#name || null,
+    ].filter((item) => item !== null);
+    if (parts.length) return `${ansiStyles.bold}${colour}[${parts.join(' ')}]${ansiStyles.reset}`;
+    return '';
   }
   #log(levelName: LevelName, ...message: unknown[]) {
     const { colour, method, value } = levels[levelName];
@@ -104,11 +109,19 @@ export class Logger {
   constructor(
     importMetaUrl: string,
     name?: string,
-    { logLevel = 'Debug:High', logDate = LogDate.None }: { logLevel?: LevelName | number; logDate?: LogDate } = {},
+    { logLevel = 'Debug:High', logDate = LogDate.None, showLevel = true, showPath = true }: {
+      logLevel?: LevelName | number;
+      logDate?: LogDate;
+      showPath?: boolean;
+      showLevel?: boolean;
+    } = {},
   ) {
-    this.#name = `${relative(cwd(), fileURLToPath(importMetaUrl)).split(sep).slice(-MAX_PATH_DEPTH).join(sep)}:${name ?? 'main'}`;
+    this.#name = `${showPath ? relative(cwd(), fileURLToPath(importMetaUrl)).split(sep).slice(-MAX_PATH_DEPTH).join(sep) : ''}${showPath && name ? ':' : ''}${
+      name ?? ''
+    }`;
     this.#levelValue = (typeof logLevel === 'number') ? this.#levelValue = logLevel : levels[logLevel].value;
-    this.#logDate = logDate;
+    this.#showDate = logDate;
+    this.#showLevel = showLevel;
   }
   public debugHigh(...message: unknown[]) {
     this.#log('Debug:High', ...message);

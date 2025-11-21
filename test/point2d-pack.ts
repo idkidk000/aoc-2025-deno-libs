@@ -116,9 +116,9 @@ for (let run = 0; run < runs; ++run) {
   }
 
   for (const method of methods) {
-    logger.info(ansiStyles.bold, method, ansiStyles.reset);
+    logger.info(ansiStyles.bold, method, ansiStyles.reset, { run });
     for (const test of tests) {
-      logger.info('  ', ansiStyles.bold, test, ansiStyles.reset, { run });
+      logger.info('  ', ansiStyles.bold, test, ansiStyles.reset);
       for (const resultType of ['rate', 'pack', 'unpack', 'set'] as const) {
         const data = results.get(method)?.[test].map((item) => item[resultType]);
         if (!data) continue;
