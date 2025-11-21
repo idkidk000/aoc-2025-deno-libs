@@ -122,7 +122,7 @@ for (const test of tests) {
     for (let run = 0; run < runs; ++run) {
       try {
         const points = makePoints(test);
-        const bounds = Point2D.bounds(points);
+        const bounds = Point2D.getBounds(points);
 
         await wait();
         const { packed, time: packTime } = pack(method, points, bounds);

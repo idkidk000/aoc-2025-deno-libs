@@ -15,12 +15,14 @@ const OFFSETS_8: Point2DTuple[] = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1
 const INT64_MASK = (1n << 64n) - 1n;
 
 // these all refer to the same area in memory
-const float64Array = new Float64Array(2);
+// f64[2] is a scratch area for intermediate values
+const float64Array = new Float64Array(3);
 // used in `pack` and `unpack`
 const bigUint64Array = new BigUint64Array(float64Array.buffer);
-// // used in `hash`
+// used in `pack32` and `unpack32`
+const float32Array = new Float32Array(float64Array.buffer);
+// used in `hash`
 const uint16Array = new Uint16Array(float64Array.buffer);
-// const uint8Array = new Uint8Array(float64Array.buffer);
 
 /** Classes have a performance penalty so all class methods are also available statically for `Point2DLike` objects */
 export class Point2D implements Point2DLike {
@@ -126,7 +128,7 @@ export class Point2D implements Point2DLike {
   public static get offsets8(): Point2DLike[] {
     return OFFSETS_8.map(([x, y]) => ({ x, y }));
   }
-  public static bounds(iterable: Iterable<Point2DLike>): Bounds2D {
+  public static getBounds(iterable: Iterable<Point2DLike>): Bounds2D {
     const items = [...iterable];
     return items.length
       ? items.reduce(
@@ -140,9 +142,18 @@ export class Point2D implements Point2DLike {
       )
       : { minX: 0, maxX: 0, minY: 0, maxY: 0 };
   }
-  /** Read x and y (Float64) as Int64 using shared buffers and combine into an Int128 (bigint can have arbitrary width)
+  public static makeInBounds({ minX, maxX, minY, maxY }: Bounds2D) {
+    return function (value: Point2DLike) {
+      return value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY;
+    };
+  }
+  /** Read x and y (f64) as uint64 using shared array buffers and combine into an int128 (bigint can have arbitrary width, but it's expensive)
    *
-   * Use `makeSmallIntPacker()` for small integers
+   * Use `pack32` for small integers and small low-precision floats
+   *
+   * `Set` **hates** the output of this for small int inputs and will take 10x as long as you expect to process it. Maybe an alignment bug/misbehaviour in v8?
+   *
+   * Use `hash` if you just need to make a `Point2DLike` hashable
    */
   public static pack(value: Point2DLike): bigint {
     float64Array[0] = value.x;
@@ -156,102 +167,45 @@ export class Point2D implements Point2DLike {
     const [x, y] = float64Array;
     return { x, y };
   }
-  public static makeInBounds({ minX, maxX, minY, maxY }: Bounds2D) {
-    return function (value: Point2DLike) {
-      return value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY;
-    };
-  }
-  /** These are faster than the `pack` and `unpack` static methods but only handle small integers */
-  public static makeSmallIntPacker({ minX, maxX, minY, maxY }: Bounds2D) {
-    // a bigint version of this is no faster than `pack` and `unpack` static methods and is still restricted to integers
-    const widthY = Math.ceil(Math.log2(maxY - minY + 1));
-    const maskY = (1 << widthY) - 1;
-    function packUnsafe(value: Point2DLike): number {
-      return ((value.x - minX) << widthY) | (value.y - minY);
-    }
-    function unpackUnsafe(value: number): Point2DLike {
-      return { x: (value >> widthY) + minX, y: (value & maskY) + minY };
-    }
-    return {
-      packUnsafe,
-      /** throws on non-integer and oob */
-      pack(value: Point2DLike) {
-        if (!(Number.isInteger(value.x) && Number.isInteger(value.y) && value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY))
-          throw new Error('only in-bounds integers can be packed');
-        return packUnsafe(value);
-      },
-      unpackUnsafe,
-      /** throws on negative, non-integer, and >MAX_SAFE_INTEGER */
-      unpack(value: number) {
-        if (value < 0 || !Number.isSafeInteger(value)) throw new Error('only safe positive integers can be unpacked');
-        return unpackUnsafe(value);
-      },
-    };
-  }
-  /** Similar performance to small int packer, handles floats
+  /** Much faster than `pack` and slightly faster than `hash`
    *
-   * Collision rates are quite poor at 0.125% for small ints and 0.012% for floats and large ints
-   *
-   * `pack` is guaranteed to have 0% collisions and the output is reversible, but bigints are slow
-   */
-  public static hash(value: Point2DLike): number {
-    const ix = Math.trunc(value.x);
-    const iy = Math.trunc(value.y);
-    const fx = (value.x - ix) * 1_000_000_000;
-    const fy = (value.y - iy) * 1_000_000_000;
-    return ix ^ (iy * 0xc2b2ae35) ^ (fx * 0x85ebca6b) ^ (fy * 0xe6546b64);
-  }
-  /** this gives 0.013% collisions on small ints, 0.0005% on small floats, and 0% (over 10mn runs) for everything else */
-  public static hash2(value: Point2DLike): number {
-    // make sure integers fill the address space instead of leaving mostly 0s
-    float64Array[0] = value.x * Math.SQRT2;
-    float64Array[1] = value.y * Math.PI;
-    // this helps with small ints. not sure why since this is in the fractional part
-    uint16Array[3] *= 13;
-    // pack the two f64s into a single 64 bit space
-    // reordering these increases collision rates
-    uint16Array[0] ^= uint16Array[4];
-    uint16Array[1] ^= uint16Array[5];
-    uint16Array[2] ^= uint16Array[6];
-    uint16Array[3] ^= uint16Array[7];
+   * Use `pack` or `hash` for anything which doesn't fit into f32. */
+  public static pack32(value: Point2DLike): number {
+    // reading the array buffer as a bigUint64 also works but it's not as fast, and takes longer to add to a set
+    float32Array[0] = value.x;
+    float32Array[1] = value.y;
     return float64Array[0];
   }
-  /** 0.004% for small ints, 0% for others. but the small int tests are expensive
-   * actually this gets really bad again for ints -100k - 100k
-   */
-  public static hash3(value: Point2DLike): number {
-    float64Array[0] = value.x * Math.SQRT2;
-    float64Array[1] = value.y * Math.PI;
+  public static unpack32(value: number): Point2DLike {
+    float64Array[0] = value;
+    const [x, y] = float32Array;
+    return { x, y };
+  }
+  /** Much faster than `pack` and slightly slower than `pack32`
+   *
+   * Collision rates are 0.0001% for small ints and 0% for everything else. Tested with 10 x 10mn clustered unique inputs */
+  public static hash(value: Point2DLike): number {
+    // `node:crypto` has `createHash` but has string ins and outs so it's incredibly slow
+    // the two input f64s are uint16Array[0-7]
+    float64Array[0] = value.x;
+    float64Array[1] = value.y;
 
-    // uint8Array[0] ^= uint8Array[8];
-    // uint8Array[1] ^= uint8Array[9];
-    // uint8Array[2] ^= uint8Array[10];
-    // uint8Array[3] ^= uint8Array[11];
-    // uint8Array[4] ^= uint8Array[12];
-    // uint8Array[5] ^= uint8Array[13];
-    // if (Number.isInteger(value.x) && Number.isInteger(value.y) && Math.abs(value.x) < 10_000 && Math.abs(value.y) < 10_000) {
-    //   uint8Array[6] ^= uint8Array[15] ^ uint8Array[8];
-    //   uint8Array[7] ^= uint8Array[14] ^ uint8Array[9];
-    // } else {
-    //   uint8Array[6] ^= uint8Array[14];
-    //   uint8Array[7] ^= uint8Array[15];
-    // }
-    uint16Array[0] ^= uint16Array[4];
-    uint16Array[1] ^= uint16Array[5];
-    uint16Array[2] ^= uint16Array[6];
-    // TODO: simplify the condition
-    // if (Number.isInteger(value.x) && Number.isInteger(value.y) && Math.abs(value.x) < 10_000 && Math.abs(value.y) < 10_000) {
-    //   // uint8Array[6] ^= uint8Array[15] ^ uint8Array[8];
-    //   // uint8Array[7] ^= uint8Array[14] ^ uint8Array[9];
-    //   uint16Array[3] ^= ((uint16Array[7] << 8) | (uint16Array[7] >> 8)) ^ uint16Array[4];
-    // } else {
-    //   uint16Array[3] ^= uint16Array[7];
-    // }
+    uint16Array[8] = uint16Array[0] * 13;
+    uint16Array[9] = uint16Array[1] * 31;
+    uint16Array[10] = uint16Array[2] * 61;
+    uint16Array[11] = uint16Array[3] * 127;
 
-    uint16Array[3] ^= Math.abs(value.x) < (1 << 30) && Math.abs(value.y) < (1 << 30) && Number.isInteger(value.x) && Number.isInteger(value.y)
-      ? ((uint16Array[7] << 8) | (uint16Array[7] >> 8)) ^ uint16Array[4]
-      : uint16Array[7];
+    uint16Array[0] ^= uint16Array[7] ^ uint16Array[10];
+    uint16Array[1] ^= uint16Array[6] ^ uint16Array[8];
+    uint16Array[2] ^= uint16Array[5] ^ uint16Array[11];
+    uint16Array[3] ^= uint16Array[4] ^ uint16Array[9];
 
+    // if the exponent part is all on, the entire f64 is invalid and NaN is returned.
+    // https://en.wikipedia.org/wiki/Double-precision_floating-point_format
+    // xor the top exponent bit somewhere else
+    uint16Array[2] ^= uint16Array[3] & 0x4000;
+    // then turn it off
+    uint16Array[3] &= 0xbfff;
     return float64Array[0];
   }
 }

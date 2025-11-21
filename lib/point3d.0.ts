@@ -167,7 +167,12 @@ export class Point3D implements Point3DLike {
       )
       : { minX: 0, maxX: 0, minY: 0, maxY: 0, minZ: 0, maxZ: 0 };
   }
-  /** Read x, y, and z (Float64) as Int64 using shared buffers and combine into an Int192 (bigint can have arbitrary width)
+  public static makeInBounds({ minX, maxX, minY, maxY, minZ, maxZ }: Bounds3D) {
+    return function (value: Point3DLike) {
+      return value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY && value.z >= minZ && value.z <= maxZ;
+    };
+  }
+  /** Read x, y, and z (f64) as uint64 using shared array buffers and combine into an int192 (bigint can have arbitrary width, but it's expensive)
    *
    * Use `makeSmallIntPacker()` for small integers
    */
@@ -184,11 +189,6 @@ export class Point3D implements Point3DLike {
     bigUint64Array[2] = value & INT64_MASK;
     const [x, y, z] = float64Array;
     return { x, y, z };
-  }
-  public static makeInBounds({ minX, maxX, minY, maxY, minZ, maxZ }: Bounds3D) {
-    return function (value: Point3DLike) {
-      return value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY && value.z >= minZ && value.z <= maxZ;
-    };
   }
   /** These are faster than the `pack` and `unpack` static methods but only handle small integers */
   public static makeSmallIntPacker({ minX, maxX, minY, maxY, minZ, maxZ }: Bounds3D) {

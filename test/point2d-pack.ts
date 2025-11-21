@@ -1,6 +1,6 @@
 /** this needs to be run with the `--expose-gc` v8 flag
  *
- * e.g.: `deno run --v8-flags=--expose-gc test/point2d-hash.ts`
+ * e.g.: `deno run --v8-flags=--expose-gc test/point2d-pack.ts`
  */
 
 import { ansiStyles, Logger } from '@/lib/logger.0.ts';
@@ -15,17 +15,13 @@ const tests = ['smallInt', 'smallFloat', 'largeInt', 'largeFloat'] as const;
 type Test = (typeof tests)[number];
 
 const methods = [
-  'hash',
-  // 'hash2',
-  // 'hash3',
-  // 'hash4',
   'pack',
   'pack32',
   // 'packSi',
 ] as const;
 type Method = (typeof methods)[number];
 
-const results = new Map<Method, Record<Test, { exec: number; rate: number; set: number }[]>>();
+const results = new Map<Method, Record<Test, { pack: number; unpack: number; set: number; rate: number }[]>>();
 
 const makePoints = (test: Test): Point2DLike[] => {
   const make = () => {
@@ -79,32 +75,43 @@ for (let run = 0; run < runs; ++run) {
     const input = makePoints(test);
     // const packer = Point2D.makeSmallIntPacker(Point2D.bounds(input));
     for (const method of methods.toSorted(() => Math.random() - 0.5)) {
-      const output = new Array(input.length);
+      const packed = new Array(input.length);
       let i = 0;
       await gc();
-      logger.debugMed('  running', { method });
+      logger.debugMed('  packing', { method });
 
-      const execStarted = performance.now();
-      if (method === 'hash') { for (const item of input) output[i++] = Point2D.hash(item); }
-      // else if (method === 'hash2') { for (const item of input) output[i++] = Point2D.hash2(item); }
-      // else if (method === 'hash3') { for (const item of input) output[i++] = Point2D.hash3(item); }
-      // else if (method === 'hash4') { for (const item of input) output[i++] = Point2D.hash4(item); }
-      else if (method === 'pack') { for (const item of input) output[i++] = Point2D.pack(item); }
-      else if (method === 'pack32') { for (const item of input) output[i++] = Point2D.pack32(item); }
-      // else if (method === 'packSi') { for (const item of input) output[i++] = packer.packUnsafe(item); }
-      else { throw new Error(`unhandled method ${method}`); }
-      const execTime = performance.now() - execStarted;
+      const packStarted = performance.now();
+      if (method === 'pack') { for (const item of input) packed[i++] = Point2D.pack(item); }
+      else if (method === 'pack32') { for (const item of input) packed[i++] = Point2D.pack32(item); }
+      // else if (method === 'packSi') { for (const item of input) packed[i++] = packer.packUnsafe(item); }
+      else { throw new Error(`unhandled pack method ${method}`); }
+      const packTime = performance.now() - packStarted;
+
+      const unpacked = new Array(input.length);
+      i = 0;
+      await gc();
+      logger.debugMed('  unpacking', { method });
+      const unpackStarted = performance.now();
+      if (method === 'pack') { for (const item of packed) unpacked[i++] = Point2D.unpack(item); }
+      else if (method === 'pack32') { for (const item of packed) unpacked[i++] = Point2D.unpack32(item); }
+      // else if (method === 'packSi') { for (const item of packed) unpacked[i++] = packer.unpackUnsafe(item); }
+      else { throw new Error(`unhandled unpack method ${method}`); }
+      const unpackTime = performance.now() - unpackStarted;
 
       await gc();
-      logger.debugMed('  checking', { method });
+      logger.debugMed('  adding to set', { method });
       const setStarted = performance.now();
-      const hashes = new Set(output);
+      const _set = new Set(packed);
       const setTime = performance.now() - setStarted;
-      const rate = (length - hashes.size) / length;
 
+      logger.debugMed('  checking', { method });
+      const matchCount = input.map((item, i) => Point2D.eq(unpacked[i], item)).filter((item) => item).length;
+      const mismatchCount = input.length - matchCount;
+      const failureRate = mismatchCount / (input.length || 1);
+
+      logger.debugLow('  ', { packTime, unpackTime, setTime, failureRate: `${failureRate * 100}%` });
       if (!results.has(method)) results.set(method, { largeFloat: [], largeInt: [], smallFloat: [], smallInt: [] });
-      results.get(method)?.[test].push({ rate, exec: execTime, set: setTime });
-      logger.debugLow('  ', { method, rate: rate * 100, execTime, setTime });
+      results.get(method)?.[test].push({ pack: packTime, rate: failureRate, set: setTime, unpack: unpackTime });
     }
   }
 
@@ -112,7 +119,7 @@ for (let run = 0; run < runs; ++run) {
     logger.info(ansiStyles.bold, method, ansiStyles.reset);
     for (const test of tests) {
       logger.info('  ', ansiStyles.bold, test, ansiStyles.reset, { run });
-      for (const resultType of ['rate', 'exec', 'set'] as const) {
+      for (const resultType of ['rate', 'pack', 'unpack', 'set'] as const) {
         const data = results.get(method)?.[test].map((item) => item[resultType]);
         if (!data) continue;
         const [min, max] = MathsUtils.minMax(...data).map((item) => resultType === 'rate' ? `${MathsUtils.roundTo(item * 100, 5)}%` : MathsUtils.roundTo(item));
