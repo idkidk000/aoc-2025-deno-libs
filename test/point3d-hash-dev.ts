@@ -1,7 +1,7 @@
 import { Point3D, Point3DLike } from '@/lib/point3d.0.ts';
 import { HashedSet } from '@/lib/hashed-set.0.ts';
 
-const [length] = Deno.args.includes('-vfast') ? [1, 1000] : Deno.args.includes('-fast') ? [5, 1_000_000] : [10, 10_000_000];
+const [runs, length] = Deno.args.includes('-vfast') ? [1, 1000] : Deno.args.includes('-fast') ? [5, 1_000_000] : [10, 10_000_000];
 
 const tests = ['smallInt', 'smallFloat', 'largeInt', 'largeFloat'] as const;
 type Test = (typeof tests)[number];

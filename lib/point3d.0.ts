@@ -42,7 +42,6 @@ const OFFSETS_26: Point3DTuple[] = [
   [0, 1, 1],
   [1, 1, 1],
 ];
-const INT64_MASK = (1n << 64n) - 1n;
 
 // these all refer to the same area in memory
 // f64[3] is used for building the return value of `hash`
@@ -51,8 +50,10 @@ const float64Array = new Float64Array(4);
 const bigUint64Array = new BigUint64Array(float64Array.buffer);
 // used in `hash`
 const uint16Array = new Uint16Array(float64Array.buffer);
+const uint32Array = new Uint32Array(float64Array.buffer);
 const float16Array = new Float16Array(float64Array.buffer);
 const float32Array = new Float32Array(float64Array.buffer);
+const PACK_INT_21_OFFSET = 1 << 20;
 
 /** Classes have a performance penalty so all class methods are also available statically for `Point3DLike` objects */
 export class Point3D implements Point3DLike {
@@ -178,13 +179,15 @@ export class Point3D implements Point3DLike {
       return value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY && value.z >= minZ && value.z <= maxZ;
     };
   }
-  /** Read x, y, and z (f64) as uint64 using shared array buffers and combine into an int192 (bigint can have arbitrary width, but it's expensive)
+  /** Lossless but slower than other `pack` and `hash` functions
    *
-   * Use `makeSmallIntPacker()` for small integers
+   * Use
+   * - `pack16` for numbers which can fit into f16
+   * - `pack32` for numbers which can fit into f32
+   * - `hash` if you just need to make a `Point3DLike` hashable
    *
    * **Adding a large number of these to a `Set` will hang indefinitely if your inputs were small ints.** Maybe an alignment bug/misbehaviour in v8? Converting to a string first is a workaround
-   *
-   * Use `hash` if you just need to make a `Point3DLike` hashable */
+   * @returns 192-bit wide bigint */
   public static pack(value: Point3DLike): bigint {
     float64Array[0] = value.x;
     float64Array[1] = value.y;
@@ -194,8 +197,8 @@ export class Point3D implements Point3DLike {
   }
   public static unpack(value: bigint): Point3DLike {
     bigUint64Array[0] = value >> 128n;
-    bigUint64Array[1] = (value >> 64n) & INT64_MASK;
-    bigUint64Array[2] = value & INT64_MASK;
+    bigUint64Array[1] = value >> 64n;
+    bigUint64Array[2] = value;
     const [x, y, z] = float64Array;
     return { x, y, z };
   }
@@ -216,24 +219,72 @@ export class Point3D implements Point3DLike {
   }
   /** Much faster than `pack` but slower than `pack16`
    *
-   * Only useful for small integers and small low-precision floats which can fit into f32 */
+   * Only useful for small integers and small low-precision floats which can fit into f32
+   * @returns 96-bit wide bigint */
   public static pack32(value: Point3DLike): bigint {
     float32Array[0] = value.x;
     float32Array[1] = value.y;
     float32Array[2] = value.z;
-    return (bigUint64Array[0] << 32n) | (bigUint64Array[1] >> 16n);
+    return (bigUint64Array[0] << 32n) | (bigUint64Array[1] >> 32n);
   }
   public static unpack32(value: bigint): Point3DLike {
     bigUint64Array[0] = value >> 32n;
-    bigUint64Array[1] = value << 16n;
+    bigUint64Array[1] = value << 32n;
     const [x, y, z] = float32Array;
     return { x, y, z };
   }
+  public static packInt21(value: Point3DLike): number {
+    //TODO: throw if oob
+    uint32Array[0] = value.x + PACK_INT_21_OFFSET;
+    uint32Array[1] = value.y + PACK_INT_21_OFFSET;
+    uint32Array[2] = value.z + PACK_INT_21_OFFSET;
+
+    // pack from u16[0-1,2-3,4-5] to u16[8-11]
+    // u32[0](x)(x) lower half full
+    uint16Array[8] = uint16Array[0];
+    // u32[0](x) upper half lower 5 | u32[1](y) lower half upper 11
+    uint16Array[9] = (uint16Array[1] << 11) | (uint16Array[2] >> 5);
+    // u32[1](y) lower half lower 5 | u32[1](y) upper half lower 5 | u32[2](z) lower half upper 6
+    uint16Array[10] = (uint16Array[2] << 11) | ((uint16Array[3] & 0x1f) << 6) | (uint16Array[4] >> 10);
+    // u32[2](z) lower half lower 10 | u32[2](z) upper half lower 5 (with gap so float64 exponent is not all on - i.e. NaN)
+    uint16Array[11] = uint16Array[4] << 6 | ((uint16Array[5] & 0x1e) << 1) | (uint16Array[5] & 0x1);
+
+    // console.debug('pack', value);
+    // uint16Array.forEach((item, i) => console.log('  pack', i.toString().padEnd(2, ' '), item.toString(2).padStart(16, '.')));
+    return float64Array[2];
+  }
+  public static unpackInt21(value: number): Point3DLike {
+    float64Array[2] = value;
+
+    // unpack from u16[8-11] to u16[0-1,2-3,4-5]
+    // u32[0](x) lower half full
+    uint16Array[0] = uint16Array[8];
+    // u32[0](x) upper half lower 5
+    uint16Array[1] = uint16Array[9] >> 11;
+
+    // u32[1](y) lower half upper 11 | lower 5
+    uint16Array[2] = uint16Array[9] << 5 | uint16Array[10] >> 11;
+    // u32[1](y) upper half lower 5
+    uint16Array[3] = (uint16Array[10] >> 6) & 0x1f;
+
+    // u32[2](z) lower half upper 6 | lower 10
+    uint16Array[4] = (uint16Array[10] << 10) | (uint16Array[11] >> 6);
+    // u32[2](z) upper half lower 5
+    uint16Array[5] = ((uint16Array[11] >> 1) & 0x1e) | (uint16Array[11] & 0x1);
+
+    const x = uint32Array[0] - PACK_INT_21_OFFSET;
+    const y = uint32Array[1] - PACK_INT_21_OFFSET;
+    const z = uint32Array[2] - PACK_INT_21_OFFSET;
+    // console.debug('unpack', { x, y, z });
+    // uint16Array.forEach((item, i) => console.log('  unpack', i.toString().padEnd(2, ' '), item.toString(2).padStart(16, '.')));
+    return { x, y, z };
+  }
+
   /** As fast as `pack16`
    *
    * 0% collisions on 10m unique clustered inputs each of small int, small float, large int, large float */
   public static hash(value: Point3DLike): number {
-    // fill out the epsilon. there's probably a better way to do this but it works and it's fast
+    // fill out the mantissa. there's probably a better way to do this
     float64Array[0] = value.x * Math.LOG2E;
     float64Array[1] = value.y * Math.PI;
     float64Array[2] = value.z * Math.LN2;

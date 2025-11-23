@@ -12,7 +12,6 @@ export interface Bounds2D {
 
 const OFFSETS_4: Point2DTuple[] = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 const OFFSETS_8: Point2DTuple[] = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
-const INT64_MASK = (1n << 64n) - 1n;
 
 // these all refer to the same area in memory
 // f64[2] is a scratch area for intermediate values
@@ -147,13 +146,14 @@ export class Point2D implements Point2DLike {
       return value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY;
     };
   }
-  /** Read x and y (f64) as uint64 using shared array buffers and combine into an int128 (bigint can have arbitrary width, but it's expensive)
+  /** Lossless but slower than other `pack` and `hash` functions
    *
-   * Use `pack32` for small integers and small low-precision floats
+   * Use
+   * - `pack32` for small numbers which can fit into f32
+   * - `hash` if you just need to make a `Point2DLike` hashable
    *
-   * **`Set` hates the output of this for small int inputs and will take 100x as long as you expect to process it** (22.9s vs 170ms). Maybe an alignment bug/misbehaviour in v8? Converting to a string first is faster.
-   *
-   * Use `hash` if you just need to make a `Point2DLike` hashable */
+   * **`Set` hates the output of this for small int inputs and will take 100x as long as you expect to process it** (22.9s vs 170ms). Maybe an alignment bug/misbehaviour in v8? Converting to a string first is faster
+   * @returns 128-bit wide bigint */
   public static pack(value: Point2DLike): bigint {
     float64Array[0] = value.x;
     float64Array[1] = value.y;
@@ -162,7 +162,7 @@ export class Point2D implements Point2DLike {
   }
   public static unpack(value: bigint): Point2DLike {
     bigUint64Array[0] = value >> 64n;
-    bigUint64Array[1] = value & INT64_MASK;
+    bigUint64Array[1] = value;
     const [x, y] = float64Array;
     return { x, y };
   }
@@ -184,7 +184,7 @@ export class Point2D implements Point2DLike {
    *
    * 0% collisions on 10m unique clustered inputs each of small int, small float, large int, large float */
   public static hash(value: Point2DLike): number {
-    // fill out the epsilon. there's probably a better way to do this but it works and it's fast
+    // fill out the mantissa. there's probably a better way to do this
     float64Array[0] = value.x * Math.LOG2E;
     float64Array[1] = value.y * Math.PI;
 

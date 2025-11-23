@@ -18,6 +18,7 @@ const methods = [
   'pack',
   'pack32',
   'pack16',
+  'packInt21',
   // 'packSi',
 ] as const;
 type Method = (typeof methods)[number];
@@ -69,7 +70,7 @@ const gc = () => {
   // @ts-expect-error shush it's fine
   // deno-lint-ignore no-node-globals
   global?.gc({ type: 'major', execution: 'sync' });
-  return new Promise((resolve) => setTimeout(resolve, 1_000));
+  return new Promise((resolve) => setTimeout(resolve, 500));
 };
 
 for (let run = 0; run < runs; ++run) {
@@ -87,6 +88,7 @@ for (let run = 0; run < runs; ++run) {
       if (method === 'pack') { for (const item of input) packed[i++] = Point3D.pack(item); }
       else if (method === 'pack32') { for (const item of input) packed[i++] = Point3D.pack32(item); }
       else if (method === 'pack16') { for (const item of input) packed[i++] = Point3D.pack16(item); }
+      else if (method === 'packInt21') { for (const item of input) packed[i++] = Point3D.packInt21(item); }
       // else if (method === 'packSi') { for (const item of input) packed[i++] = packer.packUnsafe(item); }
       else { throw new Error(`unhandled pack method ${method}`); }
       const packTime = performance.now() - packStarted;
@@ -99,6 +101,7 @@ for (let run = 0; run < runs; ++run) {
       if (method === 'pack') { for (const item of packed) unpacked[i++] = Point3D.unpack(item); }
       else if (method === 'pack32') { for (const item of packed) unpacked[i++] = Point3D.unpack32(item); }
       else if (method === 'pack16') { for (const item of packed) unpacked[i++] = Point3D.unpack16(item); }
+      else if (method === 'packInt21') { for (const item of packed) unpacked[i++] = Point3D.unpackInt21(item); }
       // else if (method === 'packSi') { for (const item of packed) unpacked[i++] = packer.unpackUnsafe(item); }
       else { throw new Error(`unhandled unpack method ${method}`); }
       const unpackTime = performance.now() - unpackStarted;
