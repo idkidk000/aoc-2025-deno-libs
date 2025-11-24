@@ -50,10 +50,11 @@ const float64Array = new Float64Array(4);
 const bigUint64Array = new BigUint64Array(float64Array.buffer);
 // used in `hash`
 const uint16Array = new Uint16Array(float64Array.buffer);
+// used in `packInt21`, `unpackInt21
 const uint32Array = new Uint32Array(float64Array.buffer);
-const float16Array = new Float16Array(float64Array.buffer);
+// used in `packFloat21`, `unpackFloat21`
 const float32Array = new Float32Array(float64Array.buffer);
-const PACK_INT_21_OFFSET = 1 << 20;
+const PACK_INT_21_BIAS = (1 << 20) - 1;
 
 /** Classes have a performance penalty so all class methods are also available statically for `Point3DLike` objects */
 export class Point3D implements Point3DLike {
@@ -182,7 +183,8 @@ export class Point3D implements Point3DLike {
   /** Lossless but slower than other `pack` and `hash` functions
    *
    * Use
-   * - `pack16` for numbers which can fit into f16
+   * - `packInt21` for integers which can fit into i21
+   * - `packFloat21` for numbers which can fit into f21 (6 exponent and 14 significand bits)
    * - `pack32` for numbers which can fit into f32
    * - `hash` if you just need to make a `Point3DLike` hashable
    *
@@ -202,22 +204,7 @@ export class Point3D implements Point3DLike {
     const [x, y, z] = float64Array;
     return { x, y, z };
   }
-  /** Much faster than `pack` and `pack32`
-   *
-   * Only useful for small integers and small low-precision floats which can fit into f16 */
-  public static pack16(value: Point3DLike): number {
-    float16Array[0] = value.x;
-    float16Array[1] = value.y;
-    float16Array[2] = value.z;
-    float16Array[4] = 0;
-    return float64Array[0];
-  }
-  public static unpack16(value: number): Point3DLike {
-    float64Array[0] = value;
-    const [x, y, z] = float16Array;
-    return { x, y, z };
-  }
-  /** Much faster than `pack` but slower than `pack16`
+  /** Much faster than `pack` but slower than `packx21`
    *
    * Only useful for small integers and small low-precision floats which can fit into f32
    * @returns 96-bit wide bigint */
@@ -225,66 +212,150 @@ export class Point3D implements Point3DLike {
     float32Array[0] = value.x;
     float32Array[1] = value.y;
     float32Array[2] = value.z;
-    return (bigUint64Array[0] << 32n) | (bigUint64Array[1] >> 32n);
+    return (bigUint64Array[0] << 32n) | (bigUint64Array[1] & 0xffffffffn);
   }
   public static unpack32(value: bigint): Point3DLike {
     bigUint64Array[0] = value >> 32n;
-    bigUint64Array[1] = value << 32n;
+    bigUint64Array[1] = value & 0xffffffffn;
     const [x, y, z] = float32Array;
     return { x, y, z };
   }
+  /** Much faster than `pack` and `pack32`
+   *
+   * Truncates x, y, and z to 21-bit biased ints
+   *
+   * Only useful for small integers which can fit into i21 */
   public static packInt21(value: Point3DLike): number {
-    //TODO: throw if oob
-    uint32Array[0] = value.x + PACK_INT_21_OFFSET;
-    uint32Array[1] = value.y + PACK_INT_21_OFFSET;
-    uint32Array[2] = value.z + PACK_INT_21_OFFSET;
+    uint32Array[0] = value.x + PACK_INT_21_BIAS;
+    uint32Array[1] = value.y + PACK_INT_21_BIAS;
+    uint32Array[2] = value.z + PACK_INT_21_BIAS;
 
     // pack from u16[0-1,2-3,4-5] to u16[8-11]
-    // u32[0](x)(x) lower half full
+    // u32[0](x) 0-15
     uint16Array[8] = uint16Array[0];
-    // u32[0](x) upper half lower 5 | u32[1](y) lower half upper 11
-    uint16Array[9] = (uint16Array[1] << 11) | (uint16Array[2] >> 5);
-    // u32[1](y) lower half lower 5 | u32[1](y) upper half lower 5 | u32[2](z) lower half upper 6
-    uint16Array[10] = (uint16Array[2] << 11) | ((uint16Array[3] & 0x1f) << 6) | (uint16Array[4] >> 10);
-    // u32[2](z) lower half lower 10 | u32[2](z) upper half lower 5 (with gap so float64 exponent is not all on - i.e. NaN)
-    uint16Array[11] = uint16Array[4] << 6 | ((uint16Array[5] & 0x1e) << 1) | (uint16Array[5] & 0x1);
+    // u32[0](x) 16-20 | u32[1](y) 0-10
+    uint16Array[9] = (uint16Array[1] & 0x1f) | (uint16Array[2] << 5);
+    // u32[1](y) 11-15 | u32[1](y) 16-20 | u32[2](z) 0-5
+    uint16Array[10] = (uint16Array[2] >> 11) | ((uint16Array[3] & 0x1f) << 5) | (uint16Array[4] << 10);
+    // u32[2](z) 6-15 | u32[2](z) 16-19 | gap (NaN) | u32[2](z) 20
+    uint16Array[11] = (uint16Array[4] >> 6) | ((uint16Array[5] & 0xf) << 10) | ((uint16Array[5] & 0x10) << 11);
 
-    // console.debug('pack', value);
-    // uint16Array.forEach((item, i) => console.log('  pack', i.toString().padEnd(2, ' '), item.toString(2).padStart(16, '.')));
     return float64Array[2];
   }
   public static unpackInt21(value: number): Point3DLike {
     float64Array[2] = value;
 
     // unpack from u16[8-11] to u16[0-1,2-3,4-5]
-    // u32[0](x) lower half full
+    // x
     uint16Array[0] = uint16Array[8];
-    // u32[0](x) upper half lower 5
-    uint16Array[1] = uint16Array[9] >> 11;
+    uint16Array[1] = uint16Array[9] & 0x1f;
 
-    // u32[1](y) lower half upper 11 | lower 5
-    uint16Array[2] = uint16Array[9] << 5 | uint16Array[10] >> 11;
-    // u32[1](y) upper half lower 5
-    uint16Array[3] = (uint16Array[10] >> 6) & 0x1f;
+    // y
+    uint16Array[2] = (uint16Array[9] >> 5) | (uint16Array[10] << 11);
+    uint16Array[3] = (uint16Array[10] >> 5) & 0x1f;
 
-    // u32[2](z) lower half upper 6 | lower 10
-    uint16Array[4] = (uint16Array[10] << 10) | (uint16Array[11] >> 6);
-    // u32[2](z) upper half lower 5
-    uint16Array[5] = ((uint16Array[11] >> 1) & 0x1e) | (uint16Array[11] & 0x1);
+    // z
+    uint16Array[4] = (uint16Array[10] >> 10) | (uint16Array[11] << 6);
+    uint16Array[5] = ((uint16Array[11] >> 10) & 0xf) | ((uint16Array[11] >> 11) & 0x10);
 
-    const x = uint32Array[0] - PACK_INT_21_OFFSET;
-    const y = uint32Array[1] - PACK_INT_21_OFFSET;
-    const z = uint32Array[2] - PACK_INT_21_OFFSET;
-    // console.debug('unpack', { x, y, z });
-    // uint16Array.forEach((item, i) => console.log('  unpack', i.toString().padEnd(2, ' '), item.toString(2).padStart(16, '.')));
+    const x = uint32Array[0] - PACK_INT_21_BIAS;
+    const y = uint32Array[1] - PACK_INT_21_BIAS;
+    const z = uint32Array[2] - PACK_INT_21_BIAS;
     return { x, y, z };
   }
+  /** Much faster than `pack` and `pack32`
+   *
+   * Truncates x, y, and z to 21-bit floats with 6 exponent and 14 significand bits
+   *
+   * Only useful for small integers and small low-precision floats which can fit into f21 */
+  public static packFloat21(value: Point3DLike): number {
+    float32Array[0] = value.x;
+    float32Array[1] = value.y;
+    float32Array[2] = value.z;
 
-  /** As fast as `pack16`
+    // f32 has 8 exponent and 23 significand bits
+    // f16 has 5 exponent and 10 significand bits
+    // f21 can have 6 exponent and 14 significand bits i suppose. probably ought to test a bit
+
+    // f32 structure:
+    //   0-22 : l0-15, h0-7: significand (we want 9-22)
+    //   23-30: h7-14      : exponent (we want 23-28)
+    //   31   : h15        : sign
+
+    // f21 structure
+    //   0-13 significand
+    //   14-19 exponent
+    //   20: sign
+
+    // read the whole exponent, remove 8-bit bias, add 6-bit bias, mask to 6 bits
+    // exponent === 0 is a special case and must remain as 0
+    // these are exponent 23-28 equivalent
+    const origXExponent = (uint16Array[1] & 0x7f80) >> 7;
+    const origYExponent = (uint16Array[3] & 0x7f80) >> 7;
+    const origZExponent = (uint16Array[5] & 0x7f80) >> 7;
+    const xExponent = origXExponent ? ((origXExponent - 96) & 0x3f) : origXExponent;
+    const yExponent = origYExponent ? ((origYExponent - 96) & 0x3f) : origYExponent;
+    const zExponent = origZExponent ? ((origZExponent - 96) & 0x3f) : origZExponent;
+
+    // pack from u16[0-1,2-3,4-5] to u16[8-11]
+
+    // f32[0](x) significand 9-15 | f32[0](x) significand 16-22 | f32[0](x) exponent 23-24
+    uint16Array[8] = (uint16Array[0] >> 9) | ((uint16Array[1] & 0x7f) << 7) | (xExponent << 14);
+
+    // f32[0](x) exponent 25-28 | f32[0](x) sign | f32[1](y) significand 9-15 | f32[1](y) significand 16-19
+    uint16Array[9] = (xExponent >> 2) | ((uint16Array[1] & 0x8000) >> 11) | ((uint16Array[2] & 0xfe00) >> 4) | (uint16Array[3] << 12);
+
+    // f32[1](y) significand 20-22 | f32[1](y) exponent 23-28 | f32[1](y) sign | f32[2](z) significand 9-14
+    uint16Array[10] = ((uint16Array[3] & 0x70) >> 4) | (yExponent << 3) | ((uint16Array[3] & 0x8000) >> 6) | ((uint16Array[4] & 0x7e00) << 1);
+
+    // f32[2](z) significand 15 | f32[2](z) significand 16-22 | f32[2](z) exponent 23-28 | off (NaN) | f32[2](z) sign
+    uint16Array[11] = (uint16Array[4] >> 15) | ((uint16Array[5] & 0x7f) << 1) | (zExponent << 8) | (uint16Array[5] & 0x8000);
+
+    // console.log('packf21', value);
+    // uint16Array.forEach((item, i) => console.log('  ', i.toString().padEnd(2, ' '), item.toString(2).padStart(16, '.')));
+
+    return float64Array[2];
+  }
+  public static unpackFloat21(value: number): Point3DLike {
+    float64Array[2] = value;
+
+    // remove 6 bit bias, add 8 bit bias
+    // exponent === 0 is a special case and must remain as 0
+    // these are exponent 23-28 equivalent
+    const origXExponent = (uint16Array[8] >> 14) | ((uint16Array[9] & 0xf) << 2);
+    const origYExponent = (uint16Array[10] & 0x1f8) >> 3;
+    const origZExponent = (uint16Array[11] & 0x3f00) >> 8;
+    const xExponent = origXExponent ? origXExponent + 96 : origXExponent;
+    const yExponent = origYExponent ? origYExponent + 96 : origYExponent;
+    const zExponent = origZExponent ? origZExponent + 96 : origZExponent;
+
+    // unpack from u16[8-11] to u16[0-1,2-3,4-5]
+    // f32[0](x) significand 9-15
+    uint16Array[0] = uint16Array[8] << 9;
+    // f32[0](x) significand 16-22 | exponent 23-28 | sign
+    uint16Array[1] = ((uint16Array[8] & 0x3f80) >> 7) | (xExponent << 7) | ((uint16Array[9] & 0x10) << 11);
+
+    // f32[1](y) significand 9-15
+    uint16Array[2] = (uint16Array[9] & 0xfe0) << 4;
+    // f32[1](y) significand 16-22 | exponent 23-28 | sign
+    uint16Array[3] = (uint16Array[9] >> 12) | ((uint16Array[10] & 0x7) << 4) | (yExponent << 7) | ((uint16Array[10] & 0x200) << 6);
+
+    // f32[2](z) significand 9-14 | significand 15
+    uint16Array[4] = ((uint16Array[10] & 0xfc00) >> 2) | (uint16Array[11] << 15);
+    // f32[2](z) significand 16-22 | exponent 23-28 | sign
+    uint16Array[5] = ((uint16Array[11] & 0xfe) >> 1) | (zExponent << 7) | (uint16Array[11] & 0x8000);
+
+    // console.log('unpackf21', value);
+    // uint16Array.forEach((item, i) => console.log('  ', i.toString().padEnd(2, ' '), item.toString(2).padStart(16, '.')));
+
+    const [x, y, z] = float32Array;
+    return { x, y, z };
+  }
+  /** As fast as `packx21`
    *
    * 0% collisions on 10m unique clustered inputs each of small int, small float, large int, large float */
   public static hash(value: Point3DLike): number {
-    // fill out the mantissa. there's probably a better way to do this
+    // fill out the significand. there's probably a better way to do this
     float64Array[0] = value.x * Math.LOG2E;
     float64Array[1] = value.y * Math.PI;
     float64Array[2] = value.z * Math.LN2;

@@ -17,8 +17,8 @@ type Test = (typeof tests)[number];
 const methods = [
   'pack',
   'pack32',
-  'pack16',
   'packInt21',
+  'packFloat21',
   // 'packSi',
 ] as const;
 type Method = (typeof methods)[number];
@@ -29,11 +29,11 @@ const makePoints = (test: Test): Point3DLike[] => {
   const make = () => {
     switch (test) {
       case 'largeFloat':
-        return (Math.random() - 0.5) * Number.MAX_SAFE_INTEGER;
+        return MathsUtils.roundTo((Math.random() - 0.5) * Number.MAX_SAFE_INTEGER, 1);
       case 'largeInt':
         return Math.round((Math.random() - 0.5) * Number.MAX_SAFE_INTEGER);
       case 'smallFloat':
-        return (Math.random() - 0.5) * 2 * 10_000;
+        return MathsUtils.roundTo((Math.random() - 0.5) * 2 * 4095, 1);
       // case 'smallInt':
       //   return Math.round((Math.random() - 0.5) * 2 * (length / 100));
       default:
@@ -87,9 +87,8 @@ for (let run = 0; run < runs; ++run) {
       const packStarted = performance.now();
       if (method === 'pack') { for (const item of input) packed[i++] = Point3D.pack(item); }
       else if (method === 'pack32') { for (const item of input) packed[i++] = Point3D.pack32(item); }
-      else if (method === 'pack16') { for (const item of input) packed[i++] = Point3D.pack16(item); }
       else if (method === 'packInt21') { for (const item of input) packed[i++] = Point3D.packInt21(item); }
-      // else if (method === 'packSi') { for (const item of input) packed[i++] = packer.packUnsafe(item); }
+      else if (method === 'packFloat21') { for (const item of input) packed[i++] = Point3D.packFloat21(item); }
       else { throw new Error(`unhandled pack method ${method}`); }
       const packTime = performance.now() - packStarted;
 
@@ -100,9 +99,8 @@ for (let run = 0; run < runs; ++run) {
       const unpackStarted = performance.now();
       if (method === 'pack') { for (const item of packed) unpacked[i++] = Point3D.unpack(item); }
       else if (method === 'pack32') { for (const item of packed) unpacked[i++] = Point3D.unpack32(item); }
-      else if (method === 'pack16') { for (const item of packed) unpacked[i++] = Point3D.unpack16(item); }
       else if (method === 'packInt21') { for (const item of packed) unpacked[i++] = Point3D.unpackInt21(item); }
-      // else if (method === 'packSi') { for (const item of packed) unpacked[i++] = packer.unpackUnsafe(item); }
+      else if (method === 'packFloat21') { for (const item of packed) unpacked[i++] = Point3D.unpackFloat21(item); }
       else { throw new Error(`unhandled unpack method ${method}`); }
       const unpackTime = performance.now() - unpackStarted;
 

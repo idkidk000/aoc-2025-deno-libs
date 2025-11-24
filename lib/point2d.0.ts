@@ -184,7 +184,7 @@ export class Point2D implements Point2DLike {
    *
    * 0% collisions on 10m unique clustered inputs each of small int, small float, large int, large float */
   public static hash(value: Point2DLike): number {
-    // fill out the mantissa. there's probably a better way to do this
+    // fill out the significand. there's probably a better way to do this
     float64Array[0] = value.x * Math.LOG2E;
     float64Array[1] = value.y * Math.PI;
 

@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-unused-vars
 import { Point3D, Point3DLike } from '@/lib/point3d.0.ts';
 import { HashedSet } from '@/lib/hashed-set.0.ts';
 
@@ -80,7 +81,6 @@ for (const test of tests) {
     const hash = float64Array[4];
 
     if (set.has(hash)) {
-      // deno-lint-ignore no-unused-vars
       const rate = (i + 1 - set.size) / (i + 1);
       // console.log(test, 'collision', `${rate * 100}%`, hash, item);
     } else { set.add(hash); }

@@ -21,8 +21,10 @@ const methods = [
   // 'hash4',
   'pack',
   'pack32',
-  'pack16',
+  // 'pack16',
   // 'packSi',
+  'packFloat21',
+  'packInt21',
 ] as const;
 type Method = (typeof methods)[number];
 
@@ -89,13 +91,10 @@ for (let run = 0; run < runs; ++run) {
 
       const execStarted = performance.now();
       if (method === 'hash') { for (const item of input) output[i++] = Point3D.hash(item); }
-      // else if (method === 'hash2') { for (const item of input) output[i++] = Point3D.hash2(item); }
-      // else if (method === 'hash3') { for (const item of input) output[i++] = Point3D.hash3(item); }
-      // else if (method === 'hash4') { for (const item of input) output[i++] = Point3D.hash4(item); }
       else if (method === 'pack') { for (const item of input) output[i++] = Point3D.pack(item); }
       else if (method === 'pack32') { for (const item of input) output[i++] = Point3D.pack32(item); }
-      else if (method === 'pack16') { for (const item of input) output[i++] = Point3D.pack16(item); }
-      // else if (method === 'packSi') { for (const item of input) output[i++] = packer.packUnsafe(item); }
+      else if (method === 'packFloat21') { for (const item of input) output[i++] = Point3D.packFloat21(item); }
+      else if (method === 'packInt21') { for (const item of input) output[i++] = Point3D.packInt21(item); }
       else { throw new Error(`unhandled method ${method}`); }
       const execTime = performance.now() - execStarted;
 
