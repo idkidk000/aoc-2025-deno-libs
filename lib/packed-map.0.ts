@@ -5,7 +5,7 @@ import { inspect } from 'node:util';
  * `HashedMap` might be a better choice if unpacking is slow
  */
 // `implements Map<Key, Value>` is helpful to verify the shape of the class but it cannot actually be satisfied
-export class PackedMap<Key, Value, Packed extends string | number | bigint> {
+export class PackedMap<Key, Value, Packed = string | number | bigint> {
   #map: Map<Packed, Value>;
   constructor(
     public readonly packer: (key: Key) => Packed,

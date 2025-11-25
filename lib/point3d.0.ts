@@ -159,7 +159,7 @@ export class Point3D implements Point3DLike {
   public static get offsets26(): Point3DLike[] {
     return OFFSETS_26.map(([x, y, z]) => ({ x, y, z }));
   }
-  public static bounds(iterable: Iterable<Point3DLike>): Bounds3D {
+  public static getBounds(iterable: Iterable<Point3DLike>): Bounds3D {
     const items = [...iterable];
     return items.length
       ? items.reduce(
@@ -204,7 +204,7 @@ export class Point3D implements Point3DLike {
     const [x, y, z] = float64Array;
     return { x, y, z };
   }
-  /** Much faster than `pack` but slower than `packx21`
+  /** Much faster than `pack` but slower than `pack(Int|Float)21`
    *
    * Only useful for small integers and small low-precision floats which can fit into f32
    * @returns 96-bit wide bigint */
@@ -220,7 +220,7 @@ export class Point3D implements Point3DLike {
     const [x, y, z] = float32Array;
     return { x, y, z };
   }
-  /** Much faster than `pack` and `pack32`
+  /** Much faster than `pack`, `pack32`, and `packFloat21`
    *
    * Truncates x, y, and z to 21-bit biased ints
    *
@@ -263,7 +263,7 @@ export class Point3D implements Point3DLike {
     const z = uint32Array[2] - PACK_INT_21_BIAS;
     return { x, y, z };
   }
-  /** Much faster than `pack` and `pack32`
+  /** Much faster than `pack` and `pack32`. Slower than `packInt21`
    *
    * Truncates x, y, and z to 21-bit floats with 6 exponent and 14 significand bits
    *
@@ -276,10 +276,11 @@ export class Point3D implements Point3DLike {
     // f32 has 8 exponent and 23 significand bits
     // f16 has 5 exponent and 10 significand bits
     // f21 can have 6 exponent and 14 significand bits i suppose. probably ought to test a bit
+    // exponent is biased to (1<<(num bits-1))-1 so that it can represent negatives
 
     // f32 structure:
     //   0-22 : l0-15, h0-7: significand (we want 9-22)
-    //   23-30: h7-14      : exponent (we want 23-28)
+    //   23-30: h7-14      : exponent (we want 23-28 but it has to be rebiased first)
     //   31   : h15        : sign
 
     // f21 structure
@@ -298,7 +299,6 @@ export class Point3D implements Point3DLike {
     const zExponent = origZExponent ? ((origZExponent - 96) & 0x3f) : origZExponent;
 
     // pack from u16[0-1,2-3,4-5] to u16[8-11]
-
     // f32[0](x) significand 9-15 | f32[0](x) significand 16-22 | f32[0](x) exponent 23-24
     uint16Array[8] = (uint16Array[0] >> 9) | ((uint16Array[1] & 0x7f) << 7) | (xExponent << 14);
 
@@ -310,9 +310,6 @@ export class Point3D implements Point3DLike {
 
     // f32[2](z) significand 15 | f32[2](z) significand 16-22 | f32[2](z) exponent 23-28 | off (NaN) | f32[2](z) sign
     uint16Array[11] = (uint16Array[4] >> 15) | ((uint16Array[5] & 0x7f) << 1) | (zExponent << 8) | (uint16Array[5] & 0x8000);
-
-    // console.log('packf21', value);
-    // uint16Array.forEach((item, i) => console.log('  ', i.toString().padEnd(2, ' '), item.toString(2).padStart(16, '.')));
 
     return float64Array[2];
   }
@@ -345,13 +342,10 @@ export class Point3D implements Point3DLike {
     // f32[2](z) significand 16-22 | exponent 23-28 | sign
     uint16Array[5] = ((uint16Array[11] & 0xfe) >> 1) | (zExponent << 7) | (uint16Array[11] & 0x8000);
 
-    // console.log('unpackf21', value);
-    // uint16Array.forEach((item, i) => console.log('  ', i.toString().padEnd(2, ' '), item.toString(2).padStart(16, '.')));
-
     const [x, y, z] = float32Array;
     return { x, y, z };
   }
-  /** As fast as `packx21`
+  /** As fast as `packInt21`
    *
    * 0% collisions on 10m unique clustered inputs each of small int, small float, large int, large float */
   public static hash(value: Point3DLike): number {

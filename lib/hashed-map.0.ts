@@ -2,7 +2,7 @@ import { inspect } from 'node:util';
 
 /** Wrapper around Map which stores the original key as part of the Map's value, so there is no unpacking overhead */
 // `implements Map<Key, Value>` is helpful to verify the shape of the class but it cannot actually be satisfied
-export class HashedMap<Key, Value, Hash extends string | number | bigint> {
+export class HashedMap<Key, Value, Hash = string | number | bigint> {
   #map: Map<Hash, { key: Key; value: Value }>;
   constructor(public readonly hasher: (key: Key) => Hash, iterable?: Iterable<[Key, Value]>) {
     this.#map = new Map<Hash, { key: Key; value: Value }>(iterable ? [...iterable].map(([key, value]) => [hasher(key), { key, value }]) : null);

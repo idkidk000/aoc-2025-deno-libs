@@ -5,7 +5,7 @@ import { inspect } from 'node:util';
  * `PackedSet` might be a better choice if you have an unpacker and are doing a lot of Set-to-Set operations
  */
 // `implements Set<Key>` is helpful to verify the shape of the class but it cannot actually be satisfied
-export class HashedSet<Key, Hash extends string | number | bigint> {
+export class HashedSet<Key, Hash = string | number | bigint> {
   #map: Map<Hash, Key>;
   constructor(
     public readonly hasher: (key: Key) => Hash,

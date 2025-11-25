@@ -5,7 +5,7 @@ import { inspect } from 'node:util';
  * Uses native `Set` methods for speed, but `HashedSet` might be a better choice if unpacking is slow
  */
 // `implements Set<Key>` is helpful to verify the shape of the class but it cannot actually be satisfied
-export class PackedSet<Key, Packed extends string | number | bigint> {
+export class PackedSet<Key, Packed = string | number | bigint> {
   #set: Set<Packed>;
   constructor(
     public readonly packer: (key: Key) => Packed,

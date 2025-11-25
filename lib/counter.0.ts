@@ -1,4 +1,4 @@
-export class Counter<Key, Value extends number | bigint> extends Map<Key, Value> {
+export class Counter<Key, Value = number | bigint> extends Map<Key, Value> {
   constructor(public readonly starting: Value, public readonly defaultAdd: Value, iterable?: Iterable<[Key, Value]>) {
     super(iterable ? iterable : null);
   }

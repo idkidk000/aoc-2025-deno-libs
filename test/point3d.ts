@@ -88,7 +88,7 @@ for (const test of tests) {
     for (let run = 0; run < runs; ++run) {
       try {
         const points = makePoints(test);
-        const bounds = Point3D.bounds(points);
+        const bounds = Point3D.getBounds(points);
 
         const packStart = performance.now();
         const packed = pack(method, points, bounds);
