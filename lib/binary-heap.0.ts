@@ -55,7 +55,7 @@ export class BinaryHeap<Item> {
     }
     return this;
   }
-  public pop(): Item | void {
+  public pop(): Item | undefined {
     if (this.#array.length === 0) return;
     // root is the first item according to `comparator`
     const root = this.#array[0];
@@ -78,12 +78,27 @@ export class BinaryHeap<Item> {
     }
     return root;
   }
+  // these all execute in array rather than comparator order and are missing the `index` and `array` callback args
   public includes(value: Item): boolean {
     return this.#array.includes(value);
   }
   public some(callback: (value: Item) => boolean): boolean {
-    for (const value of this.#array) if (callback(value)) return true;
-    return false;
+    return this.#array.some(callback);
+  }
+  public every(callback: (value: Item) => boolean): boolean {
+    return this.#array.every(callback);
+  }
+  public reduce(callback: (previousValue: Item, currentValue: Item) => Item): Item;
+  public reduce<Reduced = Item>(callback: (previousValue: Reduced, currentValue: Item) => Reduced, initialValue: Reduced): Reduced;
+  public reduce<Reduced = Item>(callback: (previousValue: Reduced, currentValue: Item) => Reduced, initialValue?: Reduced) {
+    // @ts-expect-error if initialValue is undefined, Reduced === Item
+    return typeof initialValue === 'undefined' ? this.#array.reduce(callback) : this.#array.reduce<Reduced>(callback, initialValue);
+  }
+  public clear(): void {
+    this.#array = [];
+  }
+  public peek(): Item | undefined {
+    return this.#array.at(0);
   }
   /** **Destructive** convenience method. `while (instance.length) instance.pop()` is faster */
   public *popAll(): Generator<Item, void, void> {

@@ -18,7 +18,7 @@ const results: Record<Test, { push: number; pop: number; iter: number; iterPass:
 for (let run = 0; run < runs; ++run) {
   const input = Array.from({ length }, (_, i) => i);
   for (const test of tests) {
-    const deque = new Deque<number>(undefined, { deleteAfterPop: DequeDelete.None });
+    const deque = new Deque<number>(undefined, { deleteStrategy: DequeDelete.None });
     const pushStarted = performance.now();
     if (test === 'backBack' || test === 'backFront') { for (const item of input) deque.pushBack(item); }
     else if (test === 'frontBack' || test === 'frontFront') { for (const item of input) deque.pushFront(item); }

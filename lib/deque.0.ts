@@ -10,41 +10,40 @@ export enum DequeDelete {
   Full,
 }
 export interface DequeParams {
-  growthFactor?: number;
-  deleteAfterPop?: DequeDelete;
+  growthFactor?: number | false;
+  deleteStrategy?: DequeDelete;
 }
 
-/** Basic circular array since native `Array` is just a dynamic array so `shift` and `unshift` are very slow */
+/** Basic circular array*/
 export class Deque<Item> {
   #array: Item[];
   #front = 0;
   #back = 0;
-  #factor: number;
-  #delete: DequeDelete;
+  #growthFactor: number | false;
+  #deleteStrategy: DequeDelete;
+  #startingLength: number;
+  public size = 0;
   /** Lower growth factor is better for ram but higher is better for performance
    *
-   * Full delete after pop is most correct but hurts performance. Leaving popped value untouched is fastest but prevents gc until it's overwritten. Setting popped value to null has minimal performance impact and allows gc
+   * Full delete after pop allows gc but hurts performance. Leaving popped value untouched is fastest but prevents gc until it's overwritten. Setting popped value to null has minimal performance impact and allows gc
    */
   constructor(length?: number, params?: DequeParams);
   constructor(iterable: Iterable<Item>, params?: DequeParams);
-  constructor(param: number | Iterable<Item> = 1024, { growthFactor = 2, deleteAfterPop = DequeDelete.Null }: DequeParams = {}) {
+  constructor(param: number | Iterable<Item> = 1024, { growthFactor = 2, deleteStrategy = DequeDelete.Null }: DequeParams = {}) {
+    this.#growthFactor = growthFactor;
+    this.#deleteStrategy = deleteStrategy;
     if (typeof param === 'number') this.#array = new Array(Math.max(param, 1));
     else {
       const items = [...param];
-      this.#array = new Array(Math.ceil(Math.max(items.length * growthFactor, 1)));
+      this.#array = new Array(Math.ceil(Math.max(items.length * (this.#growthFactor ? this.#growthFactor : 1), 1)));
       // push back
       for (const item of items) this.#array[this.#back++] = item;
     }
-    this.#factor = growthFactor;
-    this.#delete = deleteAfterPop;
+    this.#startingLength = this.#array.length;
   }
-  public get size() {
-    if (this.#front === this.#back) return 0;
-    if (this.#front > this.#back) return this.#array.length - this.#front + this.#back;
-    return this.#back - this.#front;
-  }
-  #grow() {
-    const array = new Array(Math.ceil(this.#array.length * this.#factor));
+  #grow(): boolean {
+    if (!this.#growthFactor) return false;
+    const array = new Array(Math.ceil(this.#array.length * this.#growthFactor));
     for (let destIx = 0; destIx < this.#array.length; ++destIx) {
       const intermediate = destIx + this.#back;
       array[destIx] = this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length];
@@ -52,13 +51,16 @@ export class Deque<Item> {
     this.#front = 0;
     this.#back = this.#array.length;
     this.#array = array;
+    return true;
   }
   public pushBack(...values: Item[]) {
     for (const value of values) {
       this.#array[this.#back] = value;
       if (this.#back === this.#array.length - 1) this.#back = 0;
       else ++this.#back;
-      if (this.#front === this.#back) this.#grow();
+      if (this.size < this.#array.length || (this.#growthFactor && this.#grow())) ++this.size;
+      else if (this.#front === this.#array.length - 1) this.#front = 0;
+      else ++this.#front;
     }
     return this.size;
   }
@@ -67,26 +69,30 @@ export class Deque<Item> {
       if (this.#front === 0) this.#front = this.#array.length - 1;
       else --this.#front;
       this.#array[this.#front] = value;
-      if (this.#front === this.#back) this.#grow();
+      if (this.size < this.#array.length || (this.#growthFactor && this.#grow())) ++this.size;
+      else if (this.#back === 0) this.#back = this.#array.length - 1;
+      else --this.#back;
     }
     return this.size;
   }
   public popBack(): Item | undefined {
-    if (this.#front === this.#back) return;
+    if (this.size === 0) return;
     if (this.#back === 0) this.#back = this.#array.length - 1;
     else --this.#back;
     const value = this.#array[this.#back];
-    if (this.#delete === DequeDelete.Full) delete this.#array[this.#back];
-    else if (this.#delete === DequeDelete.Null) this.#array[this.#back] = null as Item;
+    if (this.#deleteStrategy === DequeDelete.Full) delete this.#array[this.#back];
+    else if (this.#deleteStrategy === DequeDelete.Null) this.#array[this.#back] = null as Item;
+    --this.size;
     return value;
   }
   public popFront(): Item | undefined {
-    if (this.#front === this.#back) return;
+    if (this.size === 0) return;
     const value = this.#array[this.#front];
-    if (this.#delete === DequeDelete.Full) delete this.#array[this.#front];
-    else if (this.#delete === DequeDelete.Null) this.#array[this.#front] = null as Item;
+    if (this.#deleteStrategy === DequeDelete.Full) delete this.#array[this.#front];
+    else if (this.#deleteStrategy === DequeDelete.Null) this.#array[this.#front] = null as Item;
     if (this.#front === this.#array.length - 1) this.#front = 0;
     else ++this.#front;
+    --this.size;
     return value;
   }
   public at(index: number): Item | undefined {
@@ -99,31 +105,75 @@ export class Deque<Item> {
     const intermediate = this.#back + index;
     return this.#array.at(intermediate >= 0 ? intermediate : intermediate + this.#array.length);
   }
+  public includes(value: Item, fromIndex?: number): boolean {
+    for (let i = fromIndex ?? 0; i < this.size; ++i) {
+      const intermediate = i + this.#front;
+      if (this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length] === value) return true;
+    }
+    return false;
+  }
+  public some(callback: (value: Item, index: number, deque: this) => boolean): boolean {
+    for (let i = 0; i < this.size; ++i) {
+      const intermediate = i + this.#front;
+      if (callback(this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length], i, this)) return true;
+    }
+    return false;
+  }
+  public every(callback: (value: Item, index: number, deque: this) => boolean): boolean {
+    for (let i = 0; i < this.size; ++i) {
+      const intermediate = i + this.#front;
+      if (!callback(this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length], i, this)) return false;
+    }
+    return true;
+  }
+  public reduce(callback: (previousValue: Item, currentValue: Item, currentIndex: number, deque: this) => Item): Item;
+  public reduce<Reduced = Item>(
+    callback: (previousValue: Reduced, currentValue: Item, currentIndex: number, deque: this) => Reduced,
+    initialValue: Reduced,
+  ): Reduced;
+  public reduce<Reduced = Item>(
+    callback: (previousValue: Reduced, currentValue: Item, currentIndex: number, deque: this) => Reduced,
+    initialValue?: Reduced,
+  ): Reduced {
+    if (this.size === 0) {
+      if (typeof initialValue === 'undefined') throw new Error('Reduce of empty array with no initial value');
+      return initialValue;
+    }
+    // @ts-expect-error if initialValue is undefined, Reduced === Item
+    let [reduced, startIx]: Reduced = typeof initialValue === 'undefined' ? [this.#array[this.#front], 1] : [initialValue, 0];
+    for (let i = startIx; i < this.size; ++i) {
+      const intermediate = i + this.#front;
+      reduced = callback(reduced, this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length], i, this);
+    }
+    return reduced;
+  }
+  public clear(): void {
+    this.#array = new Array(this.#startingLength);
+    this.#front = 0;
+    this.#back = 0;
+    this.size = 0;
+  }
   public *itemsFront(): Generator<Item, void, void> {
-    const size = this.size;
-    for (let i = 0; i < size; ++i) {
+    for (let i = 0; i < this.size; ++i) {
       const intermediate = i + this.#front;
       yield this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length];
     }
   }
   public *itemsBack(): Generator<Item, void, void> {
-    const size = this.size;
-    for (let i = size - 1; i >= 0; --i) {
+    for (let i = this.size - 1; i >= 0; --i) {
       const intermediate = i + this.#front;
       yield this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length];
     }
   }
   public *entriesFront(): Generator<[number, Item], void, void> {
-    const size = this.size;
-    for (let i = 0; i < size; ++i) {
+    for (let i = 0; i < this.size; ++i) {
       const intermediate = i + this.#front;
       yield [i, this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length]];
     }
   }
   public *entriesBack(): Generator<[number, Item], void, void> {
-    const size = this.size;
-    for (let i = 0; i < size; ++i) {
-      const intermediate = size - i - 1 + this.#front;
+    for (let i = 0; i < this.size; ++i) {
+      const intermediate = this.size - i - 1 + this.#front;
       yield [i, this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length]];
     }
   }

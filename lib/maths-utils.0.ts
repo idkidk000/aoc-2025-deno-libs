@@ -37,7 +37,7 @@ export const MathsUtils = {
     { a: { x: x0, y: y0 }, b: { x: x1, y: y1 } }: Line,
     { a: { x: x2, y: y2 }, b: { x: x3, y: y3 } }: Line,
     infinite: boolean = false,
-  ): Point2DLike | void {
+  ): Point2DLike | undefined {
     const denominator = (x0 - x1) * (y2 - y3) - (y0 - y1) * (x2 - x3);
     if (denominator === 0) return;
     const line0Distance = ((x0 - x2) * (y2 - y3) - (y0 - y2) * (x2 - x3)) / denominator;
