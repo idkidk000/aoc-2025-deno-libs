@@ -16,7 +16,7 @@ export class HashedMap<Key, Value, Hash = string | number | bigint> {
   entries(): MapIterator<[Key, Value]> {
     return this.#map.values().map(({ key, value }) => [key, value]);
   }
-  forEach(callback: (value: Value, key: Key, HashedMap: HashedMap<Key, Value, Hash>) => void) {
+  forEach(callback: (value: Value, key: Key, hashedMap: this) => void) {
     return this.#map.values().forEach(({ key, value }) => callback(value, key, this));
   }
   get(key: Key) {

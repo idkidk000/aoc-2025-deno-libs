@@ -5,7 +5,6 @@ export enum CoordSystem {
   Rc,
   Xy,
 }
-
 export enum GridAxis {
   Horizontal,
   Vertical,

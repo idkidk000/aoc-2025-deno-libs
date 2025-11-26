@@ -3,7 +3,8 @@ export class Counter<Key, Value = number | bigint> extends Map<Key, Value> {
     super(iterable ?? null);
   }
   add(item: Key, count?: Value): Value {
-    // `Value` has been narrowed to *either* number or bigint, but typescript doesn't think that the `+` operator is valid
+    // `Value` has been narrowed to either `number` or `bigint` according to `starting`, so i correctly can't provide a mix of numbers and bigints in either the constructor or `add`
+    // but typescript doesn't think that the `+` operator is valid for `Value` and `Value`
     const value = ((this.get(item) ?? this.starting) as number) + ((count ?? this.defaultAdd) as number) as Value;
     this.set(item, value);
     return value;

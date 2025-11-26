@@ -35,11 +35,12 @@ export class Semaphore<Item> {
   #value: Item;
   // deno-lint-ignore ban-types
   constructor(value: Item extends Function ? never : Item) {
+    if (typeof value === 'function') throw new Error('a function cannot be used as a semaphore value');
     this.#value = value;
   }
   async update(value: Item): Promise<Item>;
   async update(callback: (prev: Item) => Item): Promise<Item>;
-  async update(param: Item | ((prev: Item) => Item)): Promise<Item> {
+  async update(param: Item | ((prev: Item) => Item)) {
     const release = await this.#mutex.acquire();
     try {
       this.#value = typeof param === 'function' ? (param as (prev: Item) => Item)(this.#value) : param;

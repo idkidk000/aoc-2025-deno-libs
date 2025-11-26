@@ -47,8 +47,7 @@ export class Point2D implements Point2DLike {
   mult(other: Point2DLike): Point2D;
   mult(value: number): Point2D;
   mult(other: Point2DLike | number): Point2D {
-    // @ts-expect-error shush
-    return new Point2D(Point2D.mult(this, other));
+    return new Point2D(Point2D.mult(this, other as Point2DLike));
   }
   eq(other: Point2DLike): boolean {
     return Point2D.eq(this, other);

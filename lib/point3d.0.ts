@@ -81,8 +81,7 @@ export class Point3D implements Point3DLike {
   mult(other: Point3DLike): Point3D;
   mult(value: number): Point3D;
   mult(other: Point3DLike | number): Point3D {
-    // @ts-expect-error shush
-    return new Point3D(Point3D.mult(this, other));
+    return new Point3D(Point3D.mult(this, other as Point3DLike));
   }
   eq(other: Point3DLike): boolean {
     return Point3D.eq(this, other);

@@ -37,15 +37,12 @@ export class BinaryHeap<Item> {
   get length() {
     return this.#array.length;
   }
-  get internal() {
-    return this.#array;
-  }
   push(...values: Item[]) {
     for (const value of values) {
       this.#array.push(value);
       let itemIx = this.#array.length - 1;
       while (itemIx > 0) {
-        // parent index can always be calculated like this since the tree is filled from the root and there can only be gaps at the tips
+        // parent index can always be calculated like this since the tree is filled from the root and there can only be gaps at the leaves
         const parentIx = (itemIx - 1) >> 1;
         if (this.comparator(this.#array[itemIx], this.#array[parentIx]) >= 0) break;
         // keep swapping child and parent until the branch is sorted
@@ -86,19 +83,27 @@ export class BinaryHeap<Item> {
     return this.#array.some(callback);
   }
   every(callback: (value: Item) => boolean): boolean {
-    return this.#array.every(callback);
+    // `Array.prototype.every` is slower
+    for (const item of this.#array) if (!callback(item)) return false;
+    return true;
   }
   reduce(callback: (previousValue: Item, currentValue: Item) => Item): Item;
   reduce<Reduced>(callback: (previousValue: Reduced, currentValue: Item) => Reduced, initialValue: Reduced): Reduced;
-  reduce<Reduced = Item>(callback: (previousValue: Reduced, currentValue: Item) => Reduced, initialValue?: Reduced) {
-    // @ts-expect-error if initialValue is undefined, Reduced === Item
-    return typeof initialValue === 'undefined' ? this.#array.reduce(callback) : this.#array.reduce<Reduced>(callback, initialValue);
+  reduce<Reduced = Item>(callback: (previousValue: Reduced | Item, currentValue: Item) => Reduced | Item, initialValue?: Reduced) {
+    return typeof initialValue === 'undefined'
+      ? this.#array.reduce(callback as (previousValue: Item, currentValue: Item) => Item)
+      : this.#array.reduce<Reduced>(callback as (previousValue: Reduced, currentValue: Item) => Reduced, initialValue);
   }
   clear(): void {
     this.#array = [];
   }
   peek(): Item | undefined {
     return this.#array.at(0);
+  }
+  clone(): BinaryHeap<Item> {
+    const heap = new BinaryHeap<Item>(this.comparator);
+    heap.#array = [...this.#array];
+    return heap;
   }
   /** **Destructive** convenience method. `while (instance.length) instance.pop()` is faster */
   *popAll(): Generator<Item, void, void> {
