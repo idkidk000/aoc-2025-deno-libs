@@ -34,13 +34,13 @@ export class BinaryHeap<Item> {
   constructor(public readonly comparator: (a: Item, b: Item) => number, iterable?: Iterable<Item>) {
     if (iterable) { for (const item of iterable) this.push(item); }
   }
-  public get length() {
+  get length() {
     return this.#array.length;
   }
-  public get internal() {
+  get internal() {
     return this.#array;
   }
-  public push(...values: Item[]) {
+  push(...values: Item[]) {
     for (const value of values) {
       this.#array.push(value);
       let itemIx = this.#array.length - 1;
@@ -55,7 +55,7 @@ export class BinaryHeap<Item> {
     }
     return this;
   }
-  public pop(): Item | undefined {
+  pop(): Item | undefined {
     if (this.#array.length === 0) return;
     // root is the first item according to `comparator`
     const root = this.#array[0];
@@ -79,34 +79,34 @@ export class BinaryHeap<Item> {
     return root;
   }
   // these all execute in array rather than comparator order and are missing the `index` and `array` callback args
-  public includes(value: Item): boolean {
+  includes(value: Item): boolean {
     return this.#array.includes(value);
   }
-  public some(callback: (value: Item) => boolean): boolean {
+  some(callback: (value: Item) => boolean): boolean {
     return this.#array.some(callback);
   }
-  public every(callback: (value: Item) => boolean): boolean {
+  every(callback: (value: Item) => boolean): boolean {
     return this.#array.every(callback);
   }
-  public reduce(callback: (previousValue: Item, currentValue: Item) => Item): Item;
-  public reduce<Reduced = Item>(callback: (previousValue: Reduced, currentValue: Item) => Reduced, initialValue: Reduced): Reduced;
-  public reduce<Reduced = Item>(callback: (previousValue: Reduced, currentValue: Item) => Reduced, initialValue?: Reduced) {
+  reduce(callback: (previousValue: Item, currentValue: Item) => Item): Item;
+  reduce<Reduced>(callback: (previousValue: Reduced, currentValue: Item) => Reduced, initialValue: Reduced): Reduced;
+  reduce<Reduced = Item>(callback: (previousValue: Reduced, currentValue: Item) => Reduced, initialValue?: Reduced) {
     // @ts-expect-error if initialValue is undefined, Reduced === Item
     return typeof initialValue === 'undefined' ? this.#array.reduce(callback) : this.#array.reduce<Reduced>(callback, initialValue);
   }
-  public clear(): void {
+  clear(): void {
     this.#array = [];
   }
-  public peek(): Item | undefined {
+  peek(): Item | undefined {
     return this.#array.at(0);
   }
   /** **Destructive** convenience method. `while (instance.length) instance.pop()` is faster */
-  public *popAll(): Generator<Item, void, void> {
+  *popAll(): Generator<Item, void, void> {
     // deno-lint-ignore no-non-null-assertion
     while (this.#array.length) yield this.pop()!;
   }
   /** **Non-destructive** - iterates over a copy */
-  public *items(): Generator<Item, void, void> {
+  *items(): Generator<Item, void, void> {
     // `toSorted` is faster on smaller arrays. creating a new heap is faster on larger
     if (this.#array.length < ITERATOR_COPY_THRESHOLD) { for (const item of this.#array.toSorted(this.comparator)) yield item; }
     else {
@@ -117,7 +117,7 @@ export class BinaryHeap<Item> {
     }
   }
   /** **Non-destructive** - iterates over a copy */
-  public *entries(): Generator<[number, Item], void, void> {
+  *entries(): Generator<[number, Item], void, void> {
     if (this.#array.length < ITERATOR_COPY_THRESHOLD) { for (const [i, item] of this.#array.toSorted(this.comparator).entries()) yield [i, item]; }
     else {
       const heap = new BinaryHeap(this.comparator);
@@ -127,10 +127,10 @@ export class BinaryHeap<Item> {
       while (heap.length) yield [i++, heap.pop()!];
     }
   }
-  public [inspect.custom]() {
+  [inspect.custom]() {
     return this.items().toArray();
   }
-  public [Symbol.iterator]() {
+  [Symbol.iterator]() {
     return this.items();
   }
 }

@@ -7,41 +7,41 @@ export class HashedMap<Key, Value, Hash = string | number | bigint> {
   constructor(public readonly hasher: (key: Key) => Hash, iterable?: Iterable<[Key, Value]>) {
     this.#map = new Map<Hash, { key: Key; value: Value }>(iterable ? [...iterable].map(([key, value]) => [hasher(key), { key, value }]) : null);
   }
-  public clear() {
+  clear() {
     return this.#map.clear();
   }
-  public delete(key: Key) {
+  delete(key: Key) {
     return this.#map.delete(this.hasher(key));
   }
-  public entries(): MapIterator<[Key, Value]> {
+  entries(): MapIterator<[Key, Value]> {
     return this.#map.values().map(({ key, value }) => [key, value]);
   }
-  public forEach(callback: (value: Value, key: Key, HashedMap: HashedMap<Key, Value, Hash>) => void) {
+  forEach(callback: (value: Value, key: Key, HashedMap: HashedMap<Key, Value, Hash>) => void) {
     return this.#map.values().forEach(({ key, value }) => callback(value, key, this));
   }
-  public get(key: Key) {
+  get(key: Key) {
     return this.#map.get(this.hasher(key))?.value;
   }
-  public has(key: Key) {
+  has(key: Key) {
     return this.#map.has(this.hasher(key));
   }
-  public keys(): MapIterator<Key> {
+  keys(): MapIterator<Key> {
     return this.#map.values().map(({ key }) => key);
   }
-  public set(key: Key, value: Value) {
+  set(key: Key, value: Value) {
     this.#map.set(this.hasher(key), { key, value });
     return this;
   }
-  public get size() {
+  get size() {
     return this.#map.size;
   }
-  public values(): MapIterator<Value> {
+  values(): MapIterator<Value> {
     return this.#map.values().map(({ value }) => value);
   }
-  public [Symbol.iterator]() {
+  [Symbol.iterator]() {
     return this.entries();
   }
-  public [inspect.custom]() {
+  [inspect.custom]() {
     return this.entries().toArray();
   }
 }

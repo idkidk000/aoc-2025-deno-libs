@@ -1,8 +1,7 @@
 // deno-lint-ignore-file no-console no-unused-vars
 import { Point3D, Point3DLike } from '@/lib/point3d.0.ts';
 import { HashedSet } from '@/lib/hashed-set.0.ts';
-import { exit } from 'node:process';
-import { MathsUtils } from '../lib/maths-utils.0.ts';
+import { MathsUtils } from '@/lib/maths-utils.0.ts';
 
 const [runs, length] = Deno.args.includes('-vfast') ? [1, 1000] : Deno.args.includes('-fast') ? [5, 1_000_000] : [10, 10_000_000];
 

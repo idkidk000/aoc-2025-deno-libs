@@ -14,41 +14,41 @@ export class PackedMap<Key, Value, Packed = string | number | bigint> {
   ) {
     this.#map = new Map<Packed, Value>(iterable ? [...iterable].map(([key, value]) => [packer(key), value]) : null);
   }
-  public clear() {
+  clear() {
     return this.#map.clear();
   }
-  public delete(key: Key) {
+  delete(key: Key) {
     return this.#map.delete(this.packer(key));
   }
-  public entries(): MapIterator<[Key, Value]> {
+  entries(): MapIterator<[Key, Value]> {
     return this.#map.entries().map(([packed, value]) => [this.unpacker(packed), value]);
   }
-  public forEach(callback: (value: Value, key: Key, packedMap: PackedMap<Key, Value, Packed>) => void) {
+  forEach(callback: (value: Value, key: Key, packedMap: PackedMap<Key, Value, Packed>) => void) {
     return this.#map.entries().forEach(([packed, value]) => callback(value, this.unpacker(packed), this));
   }
-  public get(key: Key) {
+  get(key: Key) {
     return this.#map.get(this.packer(key));
   }
-  public has(key: Key) {
+  has(key: Key) {
     return this.#map.has(this.packer(key));
   }
-  public keys(): MapIterator<Key> {
+  keys(): MapIterator<Key> {
     return this.#map.keys().map(this.unpacker);
   }
-  public set(key: Key, value: Value) {
+  set(key: Key, value: Value) {
     this.#map.set(this.packer(key), value);
     return this;
   }
-  public get size() {
+  get size() {
     return this.#map.size;
   }
-  public values(): MapIterator<Value> {
+  values(): MapIterator<Value> {
     return this.#map.values();
   }
-  public [Symbol.iterator]() {
+  [Symbol.iterator]() {
     return this.entries();
   }
-  public [inspect.custom]() {
+  [inspect.custom]() {
     return this.entries().toArray();
   }
 }

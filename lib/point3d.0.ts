@@ -58,9 +58,9 @@ const PACK_INT_21_BIAS = (1 << 20) - 1;
 
 /** Classes have a performance penalty so all class methods are also available statically for `Point3DLike` objects */
 export class Point3D implements Point3DLike {
-  public x: number;
-  public y: number;
-  public z: number;
+  x: number;
+  y: number;
+  z: number;
   constructor(x: number, y: number, z: number);
   constructor(value: Point3DLike);
   constructor(value: Point3DTuple);
@@ -72,94 +72,94 @@ export class Point3D implements Point3DLike {
   }
 
   // convenience wrappers of static methods
-  public add(other: Point3DLike): Point3D {
+  add(other: Point3DLike): Point3D {
     return new Point3D(Point3D.add(this, other));
   }
-  public sub(other: Point3DLike): Point3D {
+  sub(other: Point3DLike): Point3D {
     return new Point3D(Point3D.sub(this, other));
   }
-  public mult(other: Point3DLike): Point3D;
-  public mult(value: number): Point3D;
-  public mult(other: Point3DLike | number): Point3D {
+  mult(other: Point3DLike): Point3D;
+  mult(value: number): Point3D;
+  mult(other: Point3DLike | number): Point3D {
     // @ts-expect-error shush
     return new Point3D(Point3D.mult(this, other));
   }
-  public eq(other: Point3DLike): boolean {
+  eq(other: Point3DLike): boolean {
     return Point3D.eq(this, other);
   }
   /** Sum of squared x and y distances */
-  public dist2(other: Point3DLike): number {
+  dist2(other: Point3DLike): number {
     return Point3D.dist2(this, other);
   }
-  public dist(other: Point3DLike): number {
+  dist(other: Point3DLike): number {
     return Point3D.dist(this, other);
   }
-  public dists(other: Point3D, abs = false): Point3DLike {
+  dists(other: Point3D, abs = false): Point3DLike {
     return Point3D.dists(this, other, abs);
   }
   /** Sum of x, y, and z distances */
-  public manhattan(other: Point3DLike): number {
+  manhattan(other: Point3DLike): number {
     return Point3D.manhattan(this, other);
   }
   /** Max of x, y, and z distances */
-  public chebyshev(other: Point3DLike): number {
+  chebyshev(other: Point3DLike): number {
     return Point3D.chebyshev(this, other);
   }
-  public *neighbours(count: 6 | 26): Generator<Point3D, void, void> {
+  *neighbours(count: 6 | 26): Generator<Point3D, void, void> {
     for (const neighbour of Point3D.neighbours(this, count)) yield new Point3D(neighbour);
   }
 
   // static versions of class methods
-  public static add(value: Point3DLike, other: Point3DLike): Point3DLike {
+  static add(value: Point3DLike, other: Point3DLike): Point3DLike {
     return { x: other.x + value.x, y: other.y + value.y, z: other.z + value.z };
   }
-  public static sub(value: Point3DLike, other: Point3DLike): Point3DLike {
+  static sub(value: Point3DLike, other: Point3DLike): Point3DLike {
     return { x: other.x - value.x, y: other.y - value.y, z: other.z - value.z };
   }
-  public static mult(value: Point3DLike, other: Point3DLike): Point3DLike;
-  public static mult(value: Point3DLike, multiplier: number): Point3DLike;
-  public static mult(value: Point3DLike, other: Point3DLike | number): Point3DLike {
+  static mult(value: Point3DLike, other: Point3DLike): Point3DLike;
+  static mult(value: Point3DLike, multiplier: number): Point3DLike;
+  static mult(value: Point3DLike, other: Point3DLike | number): Point3DLike {
     return typeof other === 'number'
       ? { x: other * value.x, y: other * value.y, z: other * value.z }
       : { x: other.x * value.x, y: other.y * value.y, z: other.z * value.z };
   }
-  public static eq(value: Point3DLike, other: Point3DLike): boolean {
+  static eq(value: Point3DLike, other: Point3DLike): boolean {
     return other.x === value.x && other.y === value.y && other.z === value.z;
   }
   /** Sum of squared x and y distances */
-  public static dist2(value: Point3DLike, other: Point3DLike): number {
+  static dist2(value: Point3DLike, other: Point3DLike): number {
     return (other.x - value.x) ** 2 + (other.y - value.y) ** 2 + (other.z - value.z) ** 2;
   }
-  public static dist(value: Point3DLike, other: Point3DLike): number {
+  static dist(value: Point3DLike, other: Point3DLike): number {
     return Math.sqrt(Point3D.dist2(value, other));
   }
-  public static dists(value: Point3DLike, other: Point3DLike, abs = false): Point3DLike {
+  static dists(value: Point3DLike, other: Point3DLike, abs = false): Point3DLike {
     return abs
       ? { x: Math.abs(other.x - value.x), y: Math.abs(other.y - value.y), z: Math.abs(other.z - value.z) }
       : { x: other.x - value.x, y: other.y - value.y, z: other.z - value.z };
   }
   /** Sum of x, y, and z distances */
-  public static manhattan(value: Point3DLike, other: Point3DLike): number {
+  static manhattan(value: Point3DLike, other: Point3DLike): number {
     return Math.abs(other.x - value.x) + Math.abs(other.y - value.y) + Math.abs(other.z - value.z);
   }
   /** Max of x, y, and z distances */
-  public static chebyshev(value: Point3DLike, other: Point3DLike): number {
+  static chebyshev(value: Point3DLike, other: Point3DLike): number {
     return Math.max(Math.abs(other.x - value.x), Math.abs(other.y - value.y), Math.abs(other.z - value.z));
   }
-  public static *neighbours(value: Point3DLike, count: 6 | 26): Generator<Point3DLike, void, void> {
+  static *neighbours(value: Point3DLike, count: 6 | 26): Generator<Point3DLike, void, void> {
     if (count === 6) { for (const [x, y, z] of OFFSETS_6) yield Point3D.add(value, { x, y, z }); }
     else if (count === 26) { for (const [x, y, z] of OFFSETS_26) yield Point3D.add(value, { x, y, z }); }
     else { throw new Error('invalid neighbour count'); }
   }
 
   // static utilities
-  public static get offsets6(): Point3DLike[] {
+  static get offsets6(): Point3DLike[] {
     return OFFSETS_6.map(([x, y, z]) => ({ x, y, z }));
   }
-  public static get offsets26(): Point3DLike[] {
+  static get offsets26(): Point3DLike[] {
     return OFFSETS_26.map(([x, y, z]) => ({ x, y, z }));
   }
-  public static getBounds(iterable: Iterable<Point3DLike>): Bounds3D {
+  static getBounds(iterable: Iterable<Point3DLike>): Bounds3D {
     const items = [...iterable];
     return items.length
       ? items.reduce(
@@ -175,7 +175,7 @@ export class Point3D implements Point3DLike {
       )
       : { minX: 0, maxX: 0, minY: 0, maxY: 0, minZ: 0, maxZ: 0 };
   }
-  public static makeInBounds({ minX, maxX, minY, maxY, minZ, maxZ }: Bounds3D) {
+  static makeInBounds({ minX, maxX, minY, maxY, minZ, maxZ }: Bounds3D) {
     return function (value: Point3DLike) {
       return value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY && value.z >= minZ && value.z <= maxZ;
     };
@@ -190,14 +190,14 @@ export class Point3D implements Point3DLike {
    *
    * **Adding a large number of these to a `Set` will hang indefinitely if your inputs were small ints.** Maybe an alignment bug/misbehaviour in v8? Converting to a string first is a workaround
    * @returns 192-bit wide bigint */
-  public static pack(value: Point3DLike): bigint {
+  static pack(value: Point3DLike): bigint {
     float64Array[0] = value.x;
     float64Array[1] = value.y;
     float64Array[2] = value.z;
     const [x, y, z] = bigUint64Array;
     return (x << 128n) | (y << 64n) | z;
   }
-  public static unpack(value: bigint): Point3DLike {
+  static unpack(value: bigint): Point3DLike {
     bigUint64Array[0] = value >> 128n;
     bigUint64Array[1] = value >> 64n;
     bigUint64Array[2] = value;
@@ -208,13 +208,13 @@ export class Point3D implements Point3DLike {
    *
    * Only useful for small integers and small low-precision floats which can fit into f32
    * @returns 96-bit wide bigint */
-  public static pack32(value: Point3DLike): bigint {
+  static pack32(value: Point3DLike): bigint {
     float32Array[0] = value.x;
     float32Array[1] = value.y;
     float32Array[2] = value.z;
     return (bigUint64Array[0] << 32n) | (bigUint64Array[1] & 0xffffffffn);
   }
-  public static unpack32(value: bigint): Point3DLike {
+  static unpack32(value: bigint): Point3DLike {
     bigUint64Array[0] = value >> 32n;
     bigUint64Array[1] = value & 0xffffffffn;
     const [x, y, z] = float32Array;
@@ -225,7 +225,7 @@ export class Point3D implements Point3DLike {
    * Truncates x, y, and z to 21-bit biased ints
    *
    * Only useful for small integers which can fit into i21 */
-  public static packInt21(value: Point3DLike): number {
+  static packInt21(value: Point3DLike): number {
     uint32Array[0] = value.x + PACK_INT_21_BIAS;
     uint32Array[1] = value.y + PACK_INT_21_BIAS;
     uint32Array[2] = value.z + PACK_INT_21_BIAS;
@@ -242,7 +242,7 @@ export class Point3D implements Point3DLike {
 
     return float64Array[2];
   }
-  public static unpackInt21(value: number): Point3DLike {
+  static unpackInt21(value: number): Point3DLike {
     float64Array[2] = value;
 
     // unpack from u16[8-11] to u16[0-1,2-3,4-5]
@@ -268,7 +268,7 @@ export class Point3D implements Point3DLike {
    * Truncates x, y, and z to 21-bit floats with 6 exponent and 14 significand bits
    *
    * Only useful for small integers and small low-precision floats which can fit into f21 */
-  public static packFloat21(value: Point3DLike): number {
+  static packFloat21(value: Point3DLike): number {
     float32Array[0] = value.x;
     float32Array[1] = value.y;
     float32Array[2] = value.z;
@@ -313,7 +313,7 @@ export class Point3D implements Point3DLike {
 
     return float64Array[2];
   }
-  public static unpackFloat21(value: number): Point3DLike {
+  static unpackFloat21(value: number): Point3DLike {
     float64Array[2] = value;
 
     // remove 6 bit bias, add 8 bit bias
@@ -348,7 +348,7 @@ export class Point3D implements Point3DLike {
   /** As fast as `packInt21`
    *
    * 0% collisions on 10m unique clustered inputs each of small int, small float, large int, large float */
-  public static hash(value: Point3DLike): number {
+  static hash(value: Point3DLike): number {
     // fill out the significand. there's probably a better way to do this
     float64Array[0] = value.x * Math.LOG2E;
     float64Array[1] = value.y * Math.PI;

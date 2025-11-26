@@ -123,28 +123,28 @@ export class Logger {
     this.#showDate = logDate;
     this.#showLevel = showLevel;
   }
-  public debugHigh(...message: unknown[]) {
+  debugHigh(...message: unknown[]) {
     this.#log('Debug:High', ...message);
   }
-  public debugMed(...message: unknown[]) {
+  debugMed(...message: unknown[]) {
     this.#log('Debug:Med', ...message);
   }
-  public debugLow(...message: unknown[]) {
+  debugLow(...message: unknown[]) {
     this.#log('Debug:Low', ...message);
   }
-  public info(...message: unknown[]) {
+  info(...message: unknown[]) {
     this.#log('Info', ...message);
   }
-  public success(...message: unknown[]) {
+  success(...message: unknown[]) {
     this.#log('Success', ...message);
   }
-  public warn(...message: unknown[]) {
+  warn(...message: unknown[]) {
     this.#log('Warn', ...message);
   }
-  public error(...message: unknown[]) {
+  error(...message: unknown[]) {
     this.#log('Error', ...message);
   }
-  public setLevel(logLevel: LevelName | number) {
+  setLevel(logLevel: LevelName | number) {
     this.#levelValue = (typeof logLevel === 'number') ? this.#levelValue = logLevel : levels[logLevel].value;
   }
 }

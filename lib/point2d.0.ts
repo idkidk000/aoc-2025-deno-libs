@@ -25,8 +25,8 @@ const uint16Array = new Uint16Array(float64Array.buffer);
 
 /** Classes have a performance penalty so all class methods are also available statically for `Point2DLike` objects */
 export class Point2D implements Point2DLike {
-  public x: number;
-  public y: number;
+  x: number;
+  y: number;
   constructor(x: number, y: number);
   constructor(value: Point2DLike);
   constructor(value: Point2DTuple);
@@ -38,96 +38,96 @@ export class Point2D implements Point2DLike {
   }
 
   // convenience wrappers of static methods
-  public add(other: Point2DLike): Point2D {
+  add(other: Point2DLike): Point2D {
     return new Point2D(Point2D.add(this, other));
   }
-  public sub(other: Point2DLike): Point2D {
+  sub(other: Point2DLike): Point2D {
     return new Point2D(Point2D.sub(this, other));
   }
-  public mult(other: Point2DLike): Point2D;
-  public mult(value: number): Point2D;
-  public mult(other: Point2DLike | number): Point2D {
+  mult(other: Point2DLike): Point2D;
+  mult(value: number): Point2D;
+  mult(other: Point2DLike | number): Point2D {
     // @ts-expect-error shush
     return new Point2D(Point2D.mult(this, other));
   }
-  public eq(other: Point2DLike): boolean {
+  eq(other: Point2DLike): boolean {
     return Point2D.eq(this, other);
   }
   /** Sum of squared x and y distances */
-  public dist2(other: Point2DLike): number {
+  dist2(other: Point2DLike): number {
     return Point2D.dist2(this, other);
   }
-  public dist(other: Point2DLike): number {
+  dist(other: Point2DLike): number {
     return Point2D.dist(this, other);
   }
-  public dists(other: Point2DLike, abs = false): Point2DLike {
+  dists(other: Point2DLike, abs = false): Point2DLike {
     return Point2D.dists(this, other, abs);
   }
   /** Sum of x and y distances */
-  public manhattan(other: Point2DLike): number {
+  manhattan(other: Point2DLike): number {
     return Point2D.manhattan(this, other);
   }
   /** Max of x and y distances */
-  public chebyshev(other: Point2DLike): number {
+  chebyshev(other: Point2DLike): number {
     return Point2D.chebyshev(this, other);
   }
-  public *neighbours(count: 4 | 8): Generator<Point2D, void, void> {
+  *neighbours(count: 4 | 8): Generator<Point2D, void, void> {
     for (const neighbour of Point2D.neighbours(this, count)) yield new Point2D(neighbour);
   }
-  public angle(other: Point2DLike): number {
+  angle(other: Point2DLike): number {
     return Point2D.angle(this, other);
   }
 
   // static versions of class methods
-  public static add(value: Point2DLike, other: Point2DLike): Point2DLike {
+  static add(value: Point2DLike, other: Point2DLike): Point2DLike {
     return { x: other.x + value.x, y: other.y + value.y };
   }
-  public static sub(value: Point2DLike, other: Point2DLike): Point2DLike {
+  static sub(value: Point2DLike, other: Point2DLike): Point2DLike {
     return { x: other.x - value.x, y: other.y - value.y };
   }
-  public static mult(value: Point2DLike, other: Point2DLike): Point2DLike;
-  public static mult(value: Point2DLike, multiplier: number): Point2DLike;
-  public static mult(value: Point2DLike, other: Point2DLike | number): Point2DLike {
+  static mult(value: Point2DLike, other: Point2DLike): Point2DLike;
+  static mult(value: Point2DLike, multiplier: number): Point2DLike;
+  static mult(value: Point2DLike, other: Point2DLike | number): Point2DLike {
     return typeof other === 'number' ? { x: other * value.x, y: other * value.y } : { x: other.x * value.x, y: other.y * value.y };
   }
-  public static eq(value: Point2DLike, other: Point2DLike): boolean {
+  static eq(value: Point2DLike, other: Point2DLike): boolean {
     return other.x === value.x && other.y === value.y;
   }
   /** Sum of squared x and y distances */
-  public static dist2(value: Point2DLike, other: Point2DLike): number {
+  static dist2(value: Point2DLike, other: Point2DLike): number {
     return (other.x - value.x) ** 2 + (other.y - value.y) ** 2;
   }
-  public static dist(value: Point2DLike, other: Point2DLike): number {
+  static dist(value: Point2DLike, other: Point2DLike): number {
     return Math.sqrt(Point2D.dist2(value, other));
   }
-  public static dists(value: Point2DLike, other: Point2DLike, abs = false): Point2DLike {
+  static dists(value: Point2DLike, other: Point2DLike, abs = false): Point2DLike {
     return abs ? { x: Math.abs(other.x - value.x), y: Math.abs(other.y = value.y) } : { x: other.x - value.x, y: (other.y = value.y) };
   }
   /** Sum of x and y distances */
-  public static manhattan(value: Point2DLike, other: Point2DLike): number {
+  static manhattan(value: Point2DLike, other: Point2DLike): number {
     return Math.abs(other.x - value.x) + Math.abs(other.y - value.y);
   }
   /** Max of x and y distances */
-  public static chebyshev(value: Point2DLike, other: Point2DLike): number {
+  static chebyshev(value: Point2DLike, other: Point2DLike): number {
     return Math.max(Math.abs(other.x - value.x), Math.abs(other.y - value.y));
   }
-  public static *neighbours(value: Point2DLike, count: 4 | 8): Generator<Point2DLike, void, void> {
+  static *neighbours(value: Point2DLike, count: 4 | 8): Generator<Point2DLike, void, void> {
     if (count === 4) { for (const [x, y] of OFFSETS_4) yield Point2D.add(value, { x, y }); }
     else if (count === 8) { for (const [x, y] of OFFSETS_8) yield Point2D.add(value, { x, y }); }
     else { throw new Error('invalid neighbour count'); }
   }
-  public static angle(value: Point2DLike, other: Point2DLike): number {
+  static angle(value: Point2DLike, other: Point2DLike): number {
     return Math.atan2(other.y - value.y, other.x - value.x);
   }
 
   // static utilities
-  public static get offsets4(): Point2DLike[] {
+  static get offsets4(): Point2DLike[] {
     return OFFSETS_4.map(([x, y]) => ({ x, y }));
   }
-  public static get offsets8(): Point2DLike[] {
+  static get offsets8(): Point2DLike[] {
     return OFFSETS_8.map(([x, y]) => ({ x, y }));
   }
-  public static getBounds(iterable: Iterable<Point2DLike>): Bounds2D {
+  static getBounds(iterable: Iterable<Point2DLike>): Bounds2D {
     const items = [...iterable];
     return items.length
       ? items.reduce(
@@ -141,7 +141,7 @@ export class Point2D implements Point2DLike {
       )
       : { minX: 0, maxX: 0, minY: 0, maxY: 0 };
   }
-  public static makeInBounds({ minX, maxX, minY, maxY }: Bounds2D) {
+  static makeInBounds({ minX, maxX, minY, maxY }: Bounds2D) {
     return function (value: Point2DLike) {
       return value.x >= minX && value.x <= maxX && value.y >= minY && value.y <= maxY;
     };
@@ -154,13 +154,13 @@ export class Point2D implements Point2DLike {
    *
    * **`Set` hates the output of this for small int inputs and will take 100x as long as you expect to process it** (22.9s vs 170ms). Maybe an alignment bug/misbehaviour in v8? Converting to a string first is faster
    * @returns 128-bit wide bigint */
-  public static pack(value: Point2DLike): bigint {
+  static pack(value: Point2DLike): bigint {
     float64Array[0] = value.x;
     float64Array[1] = value.y;
     const [x, y] = bigUint64Array;
     return (x << 64n) | y;
   }
-  public static unpack(value: bigint): Point2DLike {
+  static unpack(value: bigint): Point2DLike {
     bigUint64Array[0] = value >> 64n;
     bigUint64Array[1] = value;
     const [x, y] = float64Array;
@@ -169,13 +169,13 @@ export class Point2D implements Point2DLike {
   /** Much faster than `pack` and slightly faster than `hash`
    *
    * Only useful for small integers and small low-precision floats which can fit into f32 */
-  public static pack32(value: Point2DLike): number {
+  static pack32(value: Point2DLike): number {
     // reading the array buffer as a bigUint64 also works but it's not as fast, and takes longer to add to a set
     float32Array[0] = value.x;
     float32Array[1] = value.y;
     return float64Array[0];
   }
-  public static unpack32(value: number): Point2DLike {
+  static unpack32(value: number): Point2DLike {
     float64Array[0] = value;
     const [x, y] = float32Array;
     return { x, y };
@@ -183,7 +183,7 @@ export class Point2D implements Point2DLike {
   /** Much faster than `pack`, slightly slower than `pack32`
    *
    * 0% collisions on 10m unique clustered inputs each of small int, small float, large int, large float */
-  public static hash(value: Point2DLike): number {
+  static hash(value: Point2DLike): number {
     // fill out the significand. there's probably a better way to do this
     float64Array[0] = value.x * Math.LOG2E;
     float64Array[1] = value.y * Math.PI;

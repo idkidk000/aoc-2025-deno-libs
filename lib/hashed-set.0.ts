@@ -14,62 +14,62 @@ export class HashedSet<Key, Hash = string | number | bigint> {
   ) {
     this.#map = new Map<Hash, Key>((iterable ? [...iterable].map((key) => [hasher(key), key]) : hashedIterable) ?? null);
   }
-  public add(key: Key): this {
+  add(key: Key): this {
     this.#map.set(this.hasher(key), key);
     return this;
   }
-  public delete(key: Key): boolean {
+  delete(key: Key): boolean {
     return this.#map.delete(this.hasher(key));
   }
-  public clear(): void {
+  clear(): void {
     return this.#map.clear();
   }
-  public difference(other: HashedSet<Key, Hash>): HashedSet<Key, Hash> {
+  difference(other: HashedSet<Key, Hash>): HashedSet<Key, Hash> {
     return new HashedSet(this.hasher, undefined, this.#map.entries().filter(([hash]) => !other.#map.has(hash)));
   }
-  public entries(): SetIterator<[Key, Key]> {
+  entries(): SetIterator<[Key, Key]> {
     return this.#map.values().map((key) => [key, key]);
   }
-  public forEach(callback: (value: Key, value2: Key, hashedSet: HashedSet<Key, Hash>) => void): void {
+  forEach(callback: (value: Key, value2: Key, hashedSet: HashedSet<Key, Hash>) => void): void {
     return this.#map.values().forEach((key) => callback(key, key, this));
   }
-  public has(key: Key): boolean {
+  has(key: Key): boolean {
     return this.#map.has(this.hasher(key));
   }
-  public intersection(other: HashedSet<Key, Hash>): HashedSet<Key, Hash> {
+  intersection(other: HashedSet<Key, Hash>): HashedSet<Key, Hash> {
     return new HashedSet(this.hasher, undefined, this.#map.entries().filter(([hash]) => other.#map.has(hash)));
   }
-  public isDisjointFrom(other: HashedSet<Key, Hash>): boolean {
+  isDisjointFrom(other: HashedSet<Key, Hash>): boolean {
     return this.#map.keys().every((hash) => !other.#map.has(hash));
   }
-  public isSubsetOf(other: HashedSet<Key, Hash>): boolean {
+  isSubsetOf(other: HashedSet<Key, Hash>): boolean {
     return this.#map.keys().every((hash) => other.#map.has(hash));
   }
-  public isSupersetOf(other: HashedSet<Key, Hash>): boolean {
+  isSupersetOf(other: HashedSet<Key, Hash>): boolean {
     return other.#map.keys().every((hash) => this.#map.has(hash));
   }
-  public keys(): SetIterator<Key> {
+  keys(): SetIterator<Key> {
     return this.#map.values();
   }
-  public get size() {
+  get size() {
     return this.#map.size;
   }
-  public symmetricDifference(other: HashedSet<Key, Hash>) {
+  symmetricDifference(other: HashedSet<Key, Hash>) {
     return new HashedSet(this.hasher, undefined, [
       ...this.#map.entries().filter(([hash]) => !other.#map.has(hash)),
       ...other.#map.entries().filter(([hash]) => !this.#map.has(hash)),
     ]);
   }
-  public union(other: HashedSet<Key, Hash>): HashedSet<Key, Hash> {
+  union(other: HashedSet<Key, Hash>): HashedSet<Key, Hash> {
     return new HashedSet(this.hasher, undefined, [...this.#map.entries(), ...other.#map.entries()]);
   }
-  public values(): SetIterator<Key> {
+  values(): SetIterator<Key> {
     return this.#map.values();
   }
-  public [Symbol.iterator]() {
+  [Symbol.iterator]() {
     return this.keys();
   }
-  public [inspect.custom]() {
+  [inspect.custom]() {
     return this.entries().toArray();
   }
 }

@@ -22,12 +22,15 @@ Advent of Code does seem to like them.
 
 ### `HashedMap`, `HashedSet`
 
-`Map` wrappers. Both require a `hasher` function. Hash is stored in the `Map`'s `key`. Original key is stored in the `Map`'s `value` for 0-overhead retrieval at
-the cost of ram.
+`Map` wrappers. Both require a `hasher` function. Hash is stored in the `Map`'s `key`. Original key is stored in the `Map`'s `value`.
 
 ### `Logger`
 
 You will never guess part 2.
+
+### `Mutex`, `Semaphore`
+
+Simple mutex based on the functionality of `async-mutex`. `Semaphore` is a trivial `Mutex` wrapper.
 
 ### `PackedMap`, `PackedSet`
 
