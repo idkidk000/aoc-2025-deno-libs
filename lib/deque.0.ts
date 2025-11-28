@@ -5,25 +5,17 @@ import { inspect } from 'node:util';
 // decrement then write for pushFront, read then increment for popFront
 // i.e. this.#back = writeable ix, this.#front = readable ix
 
-const ARRAYLIKE_PROPERTY_RE = /-?[0-9+]/u;
-
-type ArrayLike<Item> = Record<number, Item> & { length: number };
-
+export interface DequeParams {
+  growthFactor?: number | false;
+  deleteStrategy?: DequeDelete;
+}
 export enum DequeDelete {
   None,
   Null,
   Full,
 }
 
-export interface DequeParams {
-  growthFactor?: number | false;
-  deleteStrategy?: DequeDelete;
-}
-
-/** Basic circular array
- *
- * (actually it's quite complete now)
- */
+/** Circular array similar to `Array` and python's `Deque`*/
 export class Deque<Item> {
   #array: Item[];
   #front = 0;
@@ -34,10 +26,9 @@ export class Deque<Item> {
   #size: number;
   // used by `DequeArrayLike2`
   protected emitter = new EventEmitter<{ grow: [from: number, to: number] }>();
-  /** Lower growth factor is better for ram but higher is better for performance
+  /** Default `deleteStrategy` is `Deque.Null`, which allows gc but avoids the performance hit of `Deque.Delete`
    *
-   * Full delete after pop allows gc but hurts performance. Leaving popped value untouched is fastest but prevents gc until it's overwritten. Setting popped value to null has minimal performance impact and allows gc
-   */
+   * Default `growthFactor` is `2`. Specify `growthFactor: false` for a sliding window */
   constructor(length?: number, params?: DequeParams);
   constructor(iterable: Iterable<Item>, params?: DequeParams);
   constructor(param: number | Iterable<Item> = 1024, { growthFactor = 2, deleteStrategy = DequeDelete.Null }: DequeParams = {}) {
@@ -58,8 +49,7 @@ export class Deque<Item> {
   }
   #grow(): boolean {
     if (!this.#growthFactor) return false;
-    // it's significantly faster to create a new array and copy everything over than to expand the existing array by writing beyond the last ix, then moving everything from front ix up to the new end
-    // i suppose it must also be reallocating and copying internally
+    // it's significantly faster to create a new array and copy everything over than to expand the existing array by writing beyond the last ix and moving everything from back ix to the new end
     const prevLength = this.#array.length;
     const array = new Array(Math.ceil(this.#array.length * this.#growthFactor));
     for (let destIx = 0; destIx < this.#array.length; ++destIx) {
@@ -136,6 +126,66 @@ export class Deque<Item> {
     const intermediate = this.#back + index;
     return this.#array[intermediate >= 0 ? intermediate : intermediate + this.#array.length] = value;
   }
+  find(predicate: (value: Item, index: number, deque: this) => boolean): Item | undefined {
+    for (let i = 0; i < this.#size; ++i) {
+      const intermediate = i + this.#front;
+      const value = this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length];
+      if (predicate(value, i, this)) return value;
+    }
+  }
+  findIndex(predicate: (value: Item, index: number, deque: this) => boolean): number {
+    for (let i = 0; i < this.#size; ++i) {
+      const intermediate = i + this.#front;
+      const value = this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length];
+      if (predicate(value, i, this)) return i;
+    }
+    return -1;
+  }
+  findLast(predicate: (value: Item, index: number, deque: this) => boolean): Item | undefined {
+    for (let i = this.#size - 1; i >= 0; --i) {
+      const intermediate = i + this.#front;
+      const value = this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length];
+      if (predicate(value, i, this)) return value;
+    }
+  }
+  findLastIndex(predicate: (value: Item, index: number, deque: this) => boolean): number {
+    for (let i = this.#size - 1; i >= 0; --i) {
+      const intermediate = i + this.#front;
+      const value = this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length];
+      if (predicate(value, i, this)) return i;
+    }
+    return -1;
+  }
+  filter(predicate: (value: Item, index: number, deque: this) => boolean): Deque<Item> {
+    const deque = new Deque<Item>(undefined, { deleteStrategy: this.#deleteStrategy, growthFactor: this.#growthFactor });
+    for (let i = 0; i < this.#size; ++i) {
+      const intermediate = i + this.#front;
+      const value = this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length];
+      if (predicate(value, i, this)) deque.pushBack(value);
+    }
+    return deque;
+  }
+  sort(comparator?: (a: Item, b: Item) => number): this {
+    const array = new Array(this.#array.length);
+    for (let i = 0; i < this.#size; ++i) {
+      const intermediate = i + this.#front;
+      array[i] = this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length];
+    }
+    this.#array = array.toSorted(comparator);
+    this.#front = 0;
+    this.#back = 0;
+    this.#size = this.#array.length;
+    if (this.#growthFactor) this.#grow();
+    return this;
+  }
+  toSorted(comparator?: (a: Item, b: Item) => number): Deque<Item> {
+    const array = new Array(this.#array.length);
+    for (let i = 0; i < this.#size; ++i) {
+      const intermediate = i + this.#front;
+      array[i] = this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length];
+    }
+    return new Deque(array.toSorted(comparator), { deleteStrategy: this.#deleteStrategy, growthFactor: this.#growthFactor });
+  }
   includes(value: Item, fromIndex?: number): boolean {
     for (let i = fromIndex ?? 0; i < this.#size; ++i) {
       const intermediate = i + this.#front;
@@ -205,14 +255,15 @@ export class Deque<Item> {
     }
   }
   *entriesBack(): Generator<[number, Item], void, void> {
-    for (let i = 0; i < this.#size; ++i) {
-      const intermediate = this.#size - i - 1 + this.#front;
+    for (let i = this.#size - 1; i >= 0; --i) {
+      const intermediate = i + this.#front;
       yield [i, this.#array[intermediate < this.#array.length ? intermediate : intermediate - this.#array.length]];
     }
   }
   get size() {
     return this.#size;
   }
+  // used by DequeArrayLike2
   protected get internalLength() {
     return this.#array.length;
   }
@@ -230,71 +281,69 @@ export class Deque<Item> {
   }
 }
 
-/** `Deque` but you can also get and set members by their index in square bracket notation like an `Array`
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array#generic_array_methods
+
+/** `Deque` but it implements `ArrayLike`
  *
- * e.g., `new Deque(['a', 'b' ,'c'])[1]` returns `b`
+ * e.g.,
+ * - `new DequeArrayLike(['a', 'b' ,'c'])[1]` returns `b`
+ * - `Array.prototype.someMethod.bind(new DequeArrayLike(['a', 'b', 'c']))(...params)` calls `someMethod` as if it were a method of `DequeArrayLike`
  *
  * **This requires proxying which adds overhead to every single method call and property access** */
 export class DequeArrayLike<Item> extends Deque<Item> implements ArrayLike<Item> {
-  // This is just for typing and is overriden by the Proxy returned by the constructor since the `property in target` check fails
+  // just for typing - it's overriden by the Proxy returned by the constructor since the `property in target` check fails
   [index: number]: Item;
-  constructor(...params: ConstructorParameters<typeof Deque<Item>>) {
-    super(...params);
+  // ConstructorParameters only evaluates to the first overload so these need to be reimplemented
+  constructor(length?: number, params?: DequeParams);
+  constructor(iterable: Iterable<Item>, params?: DequeParams);
+  constructor(...params: [p0?: number | Iterable<Item>, p1?: DequeParams]) {
+    super(...params as ConstructorParameters<typeof Deque<Item>>);
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy
+    // https://github.com/microsoft/TypeScript-Website/blob/5b2c0a7c557102f2b6aa1c736fbea94e9863d82e/packages/documentation/copy/en/handbook-v2/Classes.md?plain=1#L979
     return new Proxy(this, {
-      get(target, property, _receiver) {
+      get(target, property) {
         if (property in target) {
           const getter = target[property as keyof typeof target];
-          if (getter instanceof Function) {
-            // this is faster and seems to work reliably
-            return getter.bind(target);
-            // return function (...args: unknown[]) {
-            //   /** > It's important to remember that TypeScript doesn't change the runtime behavior of JavaScript, and that JavaScript is somewhat famous for having some peculiar runtime behaviors.
-            //    *  >
-            //    *  > JavaScript's handling of `this` is indeed unusual
-            //    *  *~ [Orta, 2020](https://github.com/microsoft/TypeScript-Website/blame/5b2c0a7c557102f2b6aa1c736fbea94e9863d82e/packages/documentation/copy/en/handbook-v2/Classes.md#L979)* */
-            //   // @ts-expect-error ugh
-            //   return getter.apply(this === receiver ? target : this, args);
-            // };
-          }
-          return getter;
+          // need to re-bind `this` because js is a silly goose
+          return getter instanceof Function ? getter.bind(target) : getter;
         }
-        if (typeof property === 'string' && ARRAYLIKE_PROPERTY_RE.exec(property))
-          return target.at(parseInt(property, 10));
+        if (typeof property === 'string') {
+          const index = parseInt(property, 10);
+          if (!isNaN(index)) return target.at(index);
+        }
       },
-      set(target, property, value, receiver) {
+      set(target, property, value) {
         if (property in target) {
           const setter = target[property as keyof typeof target];
-          // @ts-expect-error also ugh
-          setter.apply(this === receiver ? target : this)(value);
-          return true;
+          return setter instanceof Function ? setter.bind(target)(value) : setter;
         }
-        if (typeof property === 'string' && ARRAYLIKE_PROPERTY_RE.exec(property)) {
-          target.set(parseInt(property, 10), value);
-          return true;
+        if (typeof property === 'string') {
+          const index = parseInt(property, 10);
+          if (!isNaN(index)) return target.set(index, value);
         }
-        return false;
       },
     });
   }
-  // ArrayLike also needs to implement `length`
   get length(): number {
     return this.size;
   }
 }
 
-/** `Deque` but you can also get and set members by their index in square bracket notation like an `Array`
+/** `Deque` but it implements `ArrayLike`
  *
- * e.g., `new Deque(['a', 'b' ,'c'])[1]` returns `b`
+ * e.g.,
+ * - `new DequeArrayLike2(['a', 'b' ,'c'])[1]` returns `b`
+ * - `Array.prototype.someMethod.bind(new DequeArrayLike2(['a', 'b', 'c']))(...params)` calls `someMethod` as if it were a method of `DequeArrayLike2`
  *
  * **This requires defining properties for every possible new array index each time the internal array grows which is very slow**
  *
- * This also seems to add some overhead to other method calls */
+ * It also adds a small overhead proportional to `length` for each method call */
 export class DequeArrayLike2<Item> extends Deque<Item> implements ArrayLike<Item> {
-  // this is overriden by #createProperties
+  // just for typing - it's overriden by #defineProperties
   [index: number]: Item;
-  #createProperties(from: number, to: number) {
-    for (let i = from; i < to; ++i) {
+  #defineProperties(prevSize: number, size: number) {
+    // there is an Object.defineProperties but it's not faster
+    for (let i = prevSize; i < size; ++i) {
       Object.defineProperty(this, i, {
         get() {
           return this.at(i);
@@ -305,12 +354,14 @@ export class DequeArrayLike2<Item> extends Deque<Item> implements ArrayLike<Item
       });
     }
   }
-  constructor(...params: ConstructorParameters<typeof Deque<Item>>) {
-    super(...params);
-    this.#createProperties(0, this.internalLength);
-    this.emitter.addListener('grow', this.#createProperties);
+  // ConstructorParameters only evaluates to the first overload so these need to be reimplemented
+  constructor(length?: number, params?: DequeParams);
+  constructor(iterable: Iterable<Item>, params?: DequeParams);
+  constructor(...params: [p0?: number | Iterable<Item>, p1?: DequeParams]) {
+    super(...params as ConstructorParameters<typeof Deque<Item>>);
+    this.#defineProperties(0, this.internalLength);
+    this.emitter.addListener('grow', this.#defineProperties);
   }
-  // ArrayLike also needs to implement `length`
   get length(): number {
     return this.size;
   }

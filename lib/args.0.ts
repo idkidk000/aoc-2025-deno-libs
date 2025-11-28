@@ -1,14 +1,23 @@
-// DONE
-
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export function parseArgs(importMetaUrl: string) {
-  const parsed = {
-    fileName: 'input.txt',
-    logLevel: 0,
-    part: 0,
+const DEFAULTS = {
+  fileName: 'input.txt',
+  logLevel: 0,
+  part: 0,
+};
+type Defaults = typeof DEFAULTS;
+
+/** Parses the following args:
+ * - `-f` `fileName` loads puzzle input from `fileName(\.txt)?`. Default `input.txt`
+ * - `-l` `logLevel` sets log level from `0` - `Debug:High` to `6` - `Error`. Default `0`
+ * - `-p` `part` selects which part of the puzzle to run - `1` is `part1`, `2` is `part2`, other is `both`. Default `0`
+ */
+export function parseArgs(importMetaUrl: string, defaults?: Partial<Defaults>) {
+  const parsed: Defaults = {
+    ...defaults,
+    ...DEFAULTS,
   };
   const raw = [...Deno.args];
   while (raw.length) {

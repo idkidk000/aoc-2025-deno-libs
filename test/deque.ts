@@ -16,13 +16,14 @@ type Test = (typeof tests)[number];
 
 const results = new Map<ClassName, Map<Test, { push: number; pop: number; iter: number; iterPass: boolean; popPass: boolean }[]>>();
 
-for (const prototype of classes) {
-  results.set(prototype.name, new Map());
+for (const constructor of classes) {
+  results.set(constructor.name, new Map());
   for (const test of tests) {
-    results.get(prototype.name)?.set(test, []);
+    results.get(constructor.name)?.set(test, []);
     for (let run = 0; run < runs; ++run) {
       const input = Array.from({ length }, (_, i) => i);
-      const deque = new prototype<number>();
+      // the shapes don't match so just assert that we're contructing a Deque
+      const deque = new (constructor<number> as typeof Deque<number>)();
       const pushStarted = performance.now();
       if (test === 'backBack' || test === 'backFront') { for (const item of input) deque.pushBack(item); }
       else if (test === 'frontBack' || test === 'frontFront') { for (const item of input) deque.pushFront(item); }
@@ -59,13 +60,13 @@ for (const prototype of classes) {
           : false
       );
 
-      logger.info(prototype.name, test, run, {
+      logger.info(constructor.name, test, run, {
         push: MathsUtils.roundTo(pushTime),
         iter: MathsUtils.roundTo(iterTime),
         pop: MathsUtils.roundTo(popTime),
         iterPass,
       });
-      results.get(prototype.name)?.get(test)?.push({ iter: iterTime, iterPass, pop: popTime, popPass, push: pushTime });
+      results.get(constructor.name)?.get(test)?.push({ iter: iterTime, iterPass, pop: popTime, popPass, push: pushTime });
 
       if (Deno.args.includes('-vfast')) {
         if (!(iterPass && popPass)) logger.info('input', input);
