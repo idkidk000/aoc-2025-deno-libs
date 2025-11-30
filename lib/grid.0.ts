@@ -20,8 +20,7 @@ export type GridOptionsWithFill<Item> = { rows: number; cols: number; fill: Item
 export type GridOptionsWithCells<Item> = { cells: Item[]; cols: number };
 export type CellInspector<Item> = (cell: Item, coord: GridCoord) => string;
 export type CoordParams<System extends CoordSystem, Index extends boolean> =
-  | [r: System extends CoordSystem.Rc ? number : never, c: System extends CoordSystem.Rc ? number : never]
-  | [x: System extends CoordSystem.Xy ? number : never, y: System extends CoordSystem.Xy ? number : never]
+  | (System extends CoordSystem.Rc ? [r: number, c: number] : [x: number, y: number])
   | [point: Point2DLike]
   | [index: Index extends true ? number : never];
 
@@ -170,9 +169,7 @@ export class Grid<Item, System extends CoordSystem> {
       for (let r = 0; r < this.#rows; ++r) yield [{ r, y: this.#rows - 1 - r }, this.#array.slice(r * this.#cols, (r + 1) * this.#cols)];
     } else { for (let r = this.#rows - 1; r >= 0; --r) yield [{ r, y: this.#rows - 1 - r }, this.#array.slice(r * this.#cols, (r + 1) * this.#cols)]; }
   }
-  rowAt(r: System extends CoordSystem.Rc ? number : never): Item[] | undefined;
-  rowAt(y: System extends CoordSystem.Xy ? number : never): Item[] | undefined;
-  rowAt(p0: number) {
+  rowAt(...[p0]: System extends CoordSystem.Rc ? [r: number] : [y: number]): Item[] | undefined {
     if (p0 < 0 || p0 > this.#rows - 1) return;
     const r = this.system === CoordSystem.Rc ? p0 : this.#rows - 1 - p0;
     return this.#array.slice(r * this.#cols, (r + 1) * this.#cols);
@@ -191,9 +188,7 @@ export class Grid<Item, System extends CoordSystem> {
       yield [{ c, x: c }, col];
     }
   }
-  colAt(c: System extends CoordSystem.Rc ? number : never): Item[] | undefined;
-  colAt(x: System extends CoordSystem.Xy ? number : never): Item[] | undefined;
-  colAt(p0: number): Item[] | undefined {
+  colAt(...[p0]: System extends CoordSystem.Rc ? [c: number] : [x: number]): Item[] | undefined {
     if (p0 < 0 || p0 > this.#cols - 1) return;
     const col = new Array<Item>(this.#rows);
     for (let r = 0; r < this.#rows; ++r) col[r] = this.#array[this.#cols * r + p0];
@@ -208,20 +203,20 @@ export class Grid<Item, System extends CoordSystem> {
   cellAt(...[p0, p1]: CoordParams<System, true>): Item | undefined {
     if (typeof p1 === 'undefined' && typeof p0 === 'number') return this.#array.at(p0);
     if (!this.inBounds(p0 as never, p1 as never)) return;
-    return this
-      .#array[
-        typeof p0 === 'object'
-          ? this.#unsafeXyToIndex(p0.x, p0.y)
-          : this.system === CoordSystem.Rc
-          ? this.#unsafeRcToIndex(p0, p1 as number)
-          : this.#unsafeXyToIndex(p0, p1 as number)
-      ];
+    return this.#array[
+      typeof p0 === 'object'
+        ? this.#unsafeXyToIndex(p0.x, p0.y)
+        : this.system === CoordSystem.Rc
+        ? this.#unsafeRcToIndex(p0, p1 as number)
+        : this.#unsafeXyToIndex(p0, p1 as number)
+    ];
   }
-  cellSet(r: System extends CoordSystem.Rc ? number : never, c: System extends CoordSystem.Rc ? number : never, value: Item): Item;
-  cellSet(x: System extends CoordSystem.Xy ? number : never, y: System extends CoordSystem.Xy ? number : never, value: Item): Item;
-  cellSet(point: Point2DLike, value: Item): Item;
-  cellSet(i: number, value: Item): Item;
-  cellSet(p0: number | Point2DLike, p1: number | Item, p2?: Item) {
+  cellSet(
+    ...[p0, p1, p2]:
+      | (System extends CoordSystem.Rc ? [r: number, c: number, value: Item] : [x: number, y: number, value: Item])
+      | [point: Point2DLike, value: Item]
+      | [index: number, value: Item]
+  ): Item {
     if (typeof p2 === 'undefined') {
       if (!this.inBounds(p0 as number)) throw new Error('out of bounds');
       this.#array[typeof p0 === 'number' ? p0 : this.#unsafeXyToIndex(p0.x, p0.y)] = p1 as Item;
