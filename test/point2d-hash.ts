@@ -4,7 +4,7 @@
  */
 
 import { ansiStyles, Logger } from '@/lib/logger.0.ts';
-import { Point2D, Point2DLike } from '@/lib/point2d.0.ts';
+import { Offset2D, Point2D, Point2DLike } from '@/lib/point2d.0.ts';
 import { MathsUtils } from '@/lib/maths-utils.0.ts';
 import { HashedSet } from '@/lib/hashed-set.0.ts';
 
@@ -56,7 +56,7 @@ const makePoints = (test: Test): Point2DLike[] => {
     const set = new HashedSet(Point2D.pack);
     while (set.size < length) {
       const center = { x: make(), y: make() };
-      for (const point of [center, ...Point2D.neighbours(center, 8)]) {
+      for (const point of [center, ...Point2D.neighbours(center, 3, Offset2D.Square)]) {
         set.add(point);
         if (set.size === length) break;
       }

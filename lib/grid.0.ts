@@ -307,10 +307,10 @@ export class Grid<Cell, System extends CoordSystem> {
   }
 
   [inspect.custom]() {
-    const maxLength = Math.floor(Math.log10(this.#rows));
+    const maxLength = Math.ceil(Math.log10(this.#rows));
     return `rows: ${this.#rows}, cols: ${this.#cols}\n${
       this.rowItems().map((row, r) =>
-        `${(this.system === CoordSystem.Rc ? r : this.#rows - r - 1).toString().padStart(maxLength, '0')}: ${
+        `${(this.system === CoordSystem.Rc ? r : this.#rows - r - 1).toString().padStart(maxLength, ' ')}: ${
           row.map((cell, c) => this.inspector?.(cell, this.#unsafeIndexToCoord(r * this.#cols + c)) ?? cell).join('')
         }`
       ).toArray().join('\n')

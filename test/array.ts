@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-unused-vars
 import { Logger } from '@/lib/logger.0.ts';
-import { MathsUtils } from '../lib/maths-utils.0.ts';
+import { MathsUtils } from '@/lib/maths-utils.0.ts';
 import { Point3D, Point3DLike } from '@/lib/point3d.0.ts';
 
 const logger = new Logger(import.meta.url);

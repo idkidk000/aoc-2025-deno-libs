@@ -111,7 +111,7 @@ for (let run = 0; run < runs; ++run) {
       const setTime = performance.now() - setStarted;
 
       logger.debugMed('  checking', { method });
-      const matchCount = input.map((item, i) => Point3D.eq(unpacked[i], item)).filter((item) => item).length;
+      const matchCount = input.map((item, i) => Point3D.isEqual(unpacked[i], item)).filter((item) => item).length;
       const mismatchCount = input.length - matchCount;
       const failureRate = mismatchCount / (input.length || 1);
 

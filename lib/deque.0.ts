@@ -305,7 +305,7 @@ export class DequeArrayLike<Item> extends Deque<Item> implements ArrayLike<Item>
         if (property in target) {
           const getter = target[property as keyof typeof target];
           // need to re-bind `this` because js is a silly goose
-          return getter instanceof Function ? getter.bind(target) : getter;
+          return typeof getter === 'function' ? getter.bind(target) : getter;
         }
         if (typeof property === 'string') {
           const index = parseInt(property, 10);
@@ -315,7 +315,7 @@ export class DequeArrayLike<Item> extends Deque<Item> implements ArrayLike<Item>
       set(target, property, value) {
         if (property in target) {
           const setter = target[property as keyof typeof target];
-          return setter instanceof Function ? setter.bind(target)(value) : setter;
+          return typeof setter === 'function' ? setter.bind(target)(value) : setter;
         }
         if (typeof property === 'string') {
           const index = parseInt(property, 10);

@@ -9,9 +9,21 @@ export interface Bounds2D {
   minY: number;
   maxY: number;
 }
-
-const OFFSETS_4: Point2DTuple[] = [[0, -1], [1, 0], [0, 1], [-1, 0]];
-const OFFSETS_8: Point2DTuple[] = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
+export enum Distance {
+  Hypot,
+  Hypot2,
+  Max,
+  Min,
+  Sum,
+}
+export enum Offset2D {
+  Cardinal,
+  Diagonal,
+  Square,
+  Circle,
+  CircleRound,
+  Diamond,
+}
 
 // these all refer to the same area in memory
 // f64[2] is a scratch area for intermediate values
@@ -41,37 +53,22 @@ export class Point2D implements Point2DLike {
   add(other: Point2DLike): Point2D {
     return new Point2D(Point2D.add(this, other));
   }
-  sub(other: Point2DLike): Point2D {
-    return new Point2D(Point2D.sub(this, other));
+  subtract(other: Point2DLike): Point2D {
+    return new Point2D(Point2D.subtract(this, other));
   }
-  mult(other: Point2DLike): Point2D;
-  mult(value: number): Point2D;
-  mult(other: Point2DLike | number): Point2D {
-    return new Point2D(Point2D.mult(this, other as Point2DLike));
+  multiply(other: Point2DLike): Point2D;
+  multiply(value: number): Point2D;
+  multiply(param: Point2DLike | number): Point2D {
+    return new Point2D(Point2D.multiply(this, param as Point2DLike));
   }
-  eq(other: Point2DLike): boolean {
-    return Point2D.eq(this, other);
+  isEqual(other: Point2DLike): boolean {
+    return Point2D.isEqual(this, other);
   }
-  /** Sum of squared x and y distances */
-  dist2(other: Point2DLike): number {
-    return Point2D.dist2(this, other);
+  distance(other: Point2DLike, type: Distance): number {
+    return Point2D.distance(this, other, type);
   }
-  dist(other: Point2DLike): number {
-    return Point2D.dist(this, other);
-  }
-  dists(other: Point2DLike, abs = false): Point2DLike {
-    return Point2D.dists(this, other, abs);
-  }
-  /** Sum of x and y distances */
-  manhattan(other: Point2DLike): number {
-    return Point2D.manhattan(this, other);
-  }
-  /** Max of x and y distances */
-  chebyshev(other: Point2DLike): number {
-    return Point2D.chebyshev(this, other);
-  }
-  *neighbours(count: 4 | 8): Generator<Point2D, void, void> {
-    for (const neighbour of Point2D.neighbours(this, count)) yield new Point2D(neighbour);
+  neighbours(...params: Parameters<typeof Point2D.offsets>): Point2D[] {
+    return Point2D.offsets(...params).map((offset) => this.add(offset));
   }
   angle(other: Point2DLike): number {
     return Point2D.angle(this, other);
@@ -81,50 +78,75 @@ export class Point2D implements Point2DLike {
   static add(value: Point2DLike, other: Point2DLike): Point2DLike {
     return { x: other.x + value.x, y: other.y + value.y };
   }
-  static sub(value: Point2DLike, other: Point2DLike): Point2DLike {
+  static subtract(value: Point2DLike, other: Point2DLike): Point2DLike {
     return { x: other.x - value.x, y: other.y - value.y };
   }
-  static mult(value: Point2DLike, other: Point2DLike): Point2DLike;
-  static mult(value: Point2DLike, multiplier: number): Point2DLike;
-  static mult(value: Point2DLike, other: Point2DLike | number): Point2DLike {
-    return typeof other === 'number' ? { x: other * value.x, y: other * value.y } : { x: other.x * value.x, y: other.y * value.y };
+  static multiply(value: Point2DLike, other: Point2DLike): Point2DLike;
+  static multiply(value: Point2DLike, multiplier: number): Point2DLike;
+  static multiply(value: Point2DLike, param: Point2DLike | number): Point2DLike {
+    return typeof param === 'number' ? { x: param * value.x, y: param * value.y } : { x: param.x * value.x, y: param.y * value.y };
   }
-  static eq(value: Point2DLike, other: Point2DLike): boolean {
+  static isEqual(value: Point2DLike, other: Point2DLike): boolean {
     return other.x === value.x && other.y === value.y;
   }
-  /** Sum of squared x and y distances */
-  static dist2(value: Point2DLike, other: Point2DLike): number {
-    return (other.x - value.x) ** 2 + (other.y - value.y) ** 2;
+  static distance(value: Point2DLike, other: Point2DLike, type: Distance): number {
+    const [x, y] = [other.x - value.x, other.y - value.y];
+    switch (type) {
+      case Distance.Hypot:
+        return Math.sqrt(x ** 2 + y ** 2);
+      case Distance.Hypot2:
+        return x ** 2 + y ** 2;
+      case Distance.Max:
+        return Math.max(Math.abs(x), Math.abs(y));
+      case Distance.Min:
+        return Math.min(Math.abs(x), Math.abs(y));
+      case Distance.Sum:
+        return Math.abs(x) + Math.abs(y);
+    }
   }
-  static dist(value: Point2DLike, other: Point2DLike): number {
-    return Math.sqrt(Point2D.dist2(value, other));
+  static neighbours(value: Point2DLike, ...params: Parameters<typeof Point2D.offsets>): Point2DLike[] {
+    return Point2D.offsets(...params).map((offset) => Point2D.add(value, offset));
   }
-  static dists(value: Point2DLike, other: Point2DLike, abs = false): Point2DLike {
-    return abs ? { x: Math.abs(other.x - value.x), y: Math.abs(other.y = value.y) } : { x: other.x - value.x, y: (other.y = value.y) };
-  }
-  /** Sum of x and y distances */
-  static manhattan(value: Point2DLike, other: Point2DLike): number {
-    return Math.abs(other.x - value.x) + Math.abs(other.y - value.y);
-  }
-  /** Max of x and y distances */
-  static chebyshev(value: Point2DLike, other: Point2DLike): number {
-    return Math.max(Math.abs(other.x - value.x), Math.abs(other.y - value.y));
-  }
-  static *neighbours(value: Point2DLike, count: 4 | 8): Generator<Point2DLike, void, void> {
-    if (count === 4) { for (const [x, y] of OFFSETS_4) yield Point2D.add(value, { x, y }); }
-    else if (count === 8) { for (const [x, y] of OFFSETS_8) yield Point2D.add(value, { x, y }); }
-    else { throw new Error('invalid neighbour count'); }
-  }
-  static angle(value: Point2DLike, other: Point2DLike): number {
+  static angle(value: Point2DLike, other: Point2DLike) {
     return Math.atan2(other.y - value.y, other.x - value.x);
   }
 
   // static utilities
-  static get offsets4(): Point2DLike[] {
-    return OFFSETS_4.map(([x, y]) => ({ x, y }));
-  }
-  static get offsets8(): Point2DLike[] {
-    return OFFSETS_8.map(([x, y]) => ({ x, y }));
+  static offsets(radius: number, constrainer: Offset2D | ((offset: Point2DLike) => boolean)): Point2DLike[] {
+    // this was far too slow as a generator
+    if (constrainer === Offset2D.Cardinal || constrainer === Offset2D.Diagonal) {
+      const result = new Array<Point2DLike>(radius * 4);
+      let index = 0;
+      for (let i = 1; i <= radius; ++i) {
+        if (constrainer === Offset2D.Cardinal) {
+          result[index++] = { x: 0, y: -i };
+          result[index++] = { x: i, y: 0 };
+          result[index++] = { x: 0, y: i };
+          result[index++] = { x: -i, y: 0 };
+        } else {
+          result[index++] = { x: i, y: -i };
+          result[index++] = { x: i, y: i };
+          result[index++] = { x: -i, y: i };
+          result[index++] = { x: -i, y: -i };
+        }
+      }
+      return result;
+    }
+    const result: Point2DLike[] = [];
+    const radius2 = constrainer === Offset2D.Circle ? radius ** 2 : constrainer === Offset2D.CircleRound ? (radius + 0.5) ** 2 : 0;
+    for (let x = -radius; x <= radius; ++x) {
+      for (let y = -radius; y <= radius; ++y) {
+        if (
+          (x !== 0 || y !== 0) &&
+          (constrainer === Offset2D.Square ||
+            (constrainer === Offset2D.Circle && x ** 2 + y ** 2 <= radius2) ||
+            (constrainer === Offset2D.CircleRound && x ** 2 + y ** 2 < radius2) ||
+            (constrainer === Offset2D.Diamond && Math.abs(x) + Math.abs(y) <= radius) ||
+            (typeof constrainer === 'function' && constrainer({ x, y })))
+        ) { result.push({ x, y }); }
+      }
+    }
+    return result;
   }
   static getBounds(iterable: Iterable<Point2DLike>): Bounds2D {
     const items = [...iterable];

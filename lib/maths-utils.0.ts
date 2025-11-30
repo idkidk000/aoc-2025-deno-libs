@@ -40,10 +40,10 @@ export const MathsUtils = {
   ): Point2DLike | undefined {
     const denominator = (x0 - x1) * (y2 - y3) - (y0 - y1) * (x2 - x3);
     if (denominator === 0) return;
-    const line0Distance = ((x0 - x2) * (y2 - y3) - (y0 - y2) * (x2 - x3)) / denominator;
-    const line1Distance = ((x0 - x2) * (y0 - y1) - (y0 - y2) * (x0 - x1)) / denominator;
-    if (infinite || (line0Distance >= 0 && line0Distance <= 1 && line1Distance >= 0 && line1Distance <= 1))
-      return { x: x0 + line0Distance * (x1 - x0), y: y0 + line0Distance * (y1 - y0) };
+    const lengthA = ((x0 - x2) * (y2 - y3) - (y0 - y2) * (x2 - x3)) / denominator;
+    const lengthB = ((x0 - x2) * (y0 - y1) - (y0 - y2) * (x0 - x1)) / denominator;
+    if (infinite || (lengthA >= 0 && lengthA <= 1 && lengthB >= 0 && lengthB <= 1))
+      return { x: x0 + lengthA * (x1 - x0), y: y0 + lengthA * (y1 - y0) };
   },
   minMax(...values: number[]): [number, number] {
     return values.reduce((acc, item) => [Math.min(acc[0], item), Math.max(acc[1], item)], [Infinity, -Infinity]);

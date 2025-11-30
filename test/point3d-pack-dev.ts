@@ -182,7 +182,7 @@ for (const test of tests) {
   for (const item of input) {
     const packed = Point3D.packInt21(item);
     const unpacked = Point3D.unpackInt21(packed);
-    const eq = Point3D.eq(item, unpacked);
+    const eq = Point3D.isEqual(item, unpacked);
     console.log(item, 'unpacked', unpacked, 'eq', eq);
     if (!eq) ++errors;
   }

@@ -12,36 +12,21 @@ export interface Bounds3D {
   minZ: number;
   maxZ: number;
 }
-
-const OFFSETS_6: Point3DTuple[] = [[0, 0, -1], [0, 1, 0], [1, 0, 0], [0, -1, 0], [-1, 0, 0], [0, 0, 1]];
-const OFFSETS_26: Point3DTuple[] = [
-  [-1, -1, -1],
-  [0, -1, -1],
-  [1, -1, -1],
-  [-1, 0, -1],
-  [0, 0, -1],
-  [1, 0, -1],
-  [-1, 1, -1],
-  [0, 1, -1],
-  [1, 1, -1],
-  [-1, -1, 0],
-  [0, -1, 0],
-  [1, -1, 0],
-  [-1, 0, 0],
-  [1, 0, 0],
-  [-1, 1, 0],
-  [0, 1, 0],
-  [1, 1, 0],
-  [-1, -1, 1],
-  [0, -1, 1],
-  [1, -1, 1],
-  [-1, 0, 1],
-  [0, 0, 1],
-  [1, 0, 1],
-  [-1, 1, 1],
-  [0, 1, 1],
-  [1, 1, 1],
-];
+export enum Distance {
+  Hypot,
+  Hypot2,
+  Max,
+  Min,
+  Sum,
+}
+export enum Offset3D {
+  Cardinal,
+  Diagonal,
+  Cube,
+  Sphere,
+  SphereRound,
+  Diamond,
+}
 
 // these all refer to the same area in memory
 // f64[3] is used for building the return value of `hash`
@@ -75,88 +60,104 @@ export class Point3D implements Point3DLike {
   add(other: Point3DLike): Point3D {
     return new Point3D(Point3D.add(this, other));
   }
-  sub(other: Point3DLike): Point3D {
-    return new Point3D(Point3D.sub(this, other));
+  subtract(other: Point3DLike): Point3D {
+    return new Point3D(Point3D.subtract(this, other));
   }
-  mult(other: Point3DLike): Point3D;
-  mult(value: number): Point3D;
-  mult(other: Point3DLike | number): Point3D {
-    return new Point3D(Point3D.mult(this, other as Point3DLike));
+  multiply(other: Point3DLike): Point3D;
+  multiply(value: number): Point3D;
+  multiply(param: Point3DLike | number): Point3D {
+    return new Point3D(Point3D.multiply(this, param as Point3DLike));
   }
-  eq(other: Point3DLike): boolean {
-    return Point3D.eq(this, other);
+  isEqual(other: Point3DLike): boolean {
+    return Point3D.isEqual(this, other);
   }
-  /** Sum of squared x and y distances */
-  dist2(other: Point3DLike): number {
-    return Point3D.dist2(this, other);
+  distance(other: Point3DLike, type: Distance): number {
+    return Point3D.distance(this, other, type);
   }
-  dist(other: Point3DLike): number {
-    return Point3D.dist(this, other);
-  }
-  dists(other: Point3D, abs = false): Point3DLike {
-    return Point3D.dists(this, other, abs);
-  }
-  /** Sum of x, y, and z distances */
-  manhattan(other: Point3DLike): number {
-    return Point3D.manhattan(this, other);
-  }
-  /** Max of x, y, and z distances */
-  chebyshev(other: Point3DLike): number {
-    return Point3D.chebyshev(this, other);
-  }
-  *neighbours(count: 6 | 26): Generator<Point3D, void, void> {
-    for (const neighbour of Point3D.neighbours(this, count)) yield new Point3D(neighbour);
+  neighbours(...params: Parameters<typeof Point3D.offsets>): Point3D[] {
+    return Point3D.offsets(...params).map((offset) => this.add(offset));
   }
 
   // static versions of class methods
   static add(value: Point3DLike, other: Point3DLike): Point3DLike {
     return { x: other.x + value.x, y: other.y + value.y, z: other.z + value.z };
   }
-  static sub(value: Point3DLike, other: Point3DLike): Point3DLike {
+  static subtract(value: Point3DLike, other: Point3DLike): Point3DLike {
     return { x: other.x - value.x, y: other.y - value.y, z: other.z - value.z };
   }
-  static mult(value: Point3DLike, other: Point3DLike): Point3DLike;
-  static mult(value: Point3DLike, multiplier: number): Point3DLike;
-  static mult(value: Point3DLike, other: Point3DLike | number): Point3DLike {
-    return typeof other === 'number'
-      ? { x: other * value.x, y: other * value.y, z: other * value.z }
-      : { x: other.x * value.x, y: other.y * value.y, z: other.z * value.z };
+  static multiply(value: Point3DLike, other: Point3DLike): Point3DLike;
+  static multiply(value: Point3DLike, multiplier: number): Point3DLike;
+  static multiply(value: Point3DLike, param: Point3DLike | number): Point3DLike {
+    return typeof param === 'number'
+      ? { x: param * value.x, y: param * value.y, z: param * value.z }
+      : { x: param.x * value.x, y: param.y * value.y, z: param.z * value.z };
   }
-  static eq(value: Point3DLike, other: Point3DLike): boolean {
+  static isEqual(value: Point3DLike, other: Point3DLike): boolean {
     return other.x === value.x && other.y === value.y && other.z === value.z;
   }
-  /** Sum of squared x and y distances */
-  static dist2(value: Point3DLike, other: Point3DLike): number {
-    return (other.x - value.x) ** 2 + (other.y - value.y) ** 2 + (other.z - value.z) ** 2;
+  static distance(value: Point3DLike, other: Point3DLike, type: Distance): number {
+    const [x, y, z] = [other.x - value.x, other.y - value.y, other.z - value.z];
+    switch (type) {
+      case Distance.Hypot:
+        return Math.sqrt(x ** 2 + y ** 2 + z ** 2);
+      case Distance.Hypot2:
+        return x ** 2 + y ** 2 + z ** 2;
+      case Distance.Max:
+        return Math.max(Math.abs(x), Math.abs(y), Math.abs(z));
+      case Distance.Min:
+        return Math.min(Math.abs(x), Math.abs(y), Math.abs(z));
+      case Distance.Sum:
+        return Math.abs(x) + Math.abs(y), Math.abs(z);
+    }
   }
-  static dist(value: Point3DLike, other: Point3DLike): number {
-    return Math.sqrt(Point3D.dist2(value, other));
-  }
-  static dists(value: Point3DLike, other: Point3DLike, abs = false): Point3DLike {
-    return abs
-      ? { x: Math.abs(other.x - value.x), y: Math.abs(other.y - value.y), z: Math.abs(other.z - value.z) }
-      : { x: other.x - value.x, y: other.y - value.y, z: other.z - value.z };
-  }
-  /** Sum of x, y, and z distances */
-  static manhattan(value: Point3DLike, other: Point3DLike): number {
-    return Math.abs(other.x - value.x) + Math.abs(other.y - value.y) + Math.abs(other.z - value.z);
-  }
-  /** Max of x, y, and z distances */
-  static chebyshev(value: Point3DLike, other: Point3DLike): number {
-    return Math.max(Math.abs(other.x - value.x), Math.abs(other.y - value.y), Math.abs(other.z - value.z));
-  }
-  static *neighbours(value: Point3DLike, count: 6 | 26): Generator<Point3DLike, void, void> {
-    if (count === 6) { for (const [x, y, z] of OFFSETS_6) yield Point3D.add(value, { x, y, z }); }
-    else if (count === 26) { for (const [x, y, z] of OFFSETS_26) yield Point3D.add(value, { x, y, z }); }
-    else { throw new Error('invalid neighbour count'); }
+  static neighbours(value: Point3DLike, ...params: Parameters<typeof Point3D.offsets>): Point3DLike[] {
+    return Point3D.offsets(...params).map((offset) => Point3D.add(value, offset));
   }
 
   // static utilities
-  static get offsets6(): Point3DLike[] {
-    return OFFSETS_6.map(([x, y, z]) => ({ x, y, z }));
-  }
-  static get offsets26(): Point3DLike[] {
-    return OFFSETS_26.map(([x, y, z]) => ({ x, y, z }));
+  static offsets(radius: number, constrainer: Offset3D | ((offset: Point3DLike) => boolean)): Point3DLike[] {
+    // this was far too slow as a generator
+    if (constrainer === Offset3D.Cardinal || constrainer === Offset3D.Diagonal) {
+      const result = new Array<Point3DLike>(radius * (constrainer === Offset3D.Cardinal ? 6 : 8));
+      let index = 0;
+      for (let i = 1; i <= radius; ++i) {
+        if (constrainer === Offset3D.Cardinal) {
+          result[index++] = { x: 0, y: 0, z: -i };
+          result[index++] = { x: 0, y: -i, z: 0 };
+          result[index++] = { x: i, y: 0, z: 0 };
+          result[index++] = { x: 0, y: i, z: 0 };
+          result[index++] = { x: -i, y: 0, z: 0 };
+          result[index++] = { x: 0, y: 0, z: i };
+        } else {
+          result[index++] = { x: i, y: -i, z: -i };
+          result[index++] = { x: i, y: i, z: -i };
+          result[index++] = { x: -i, y: i, z: -i };
+          result[index++] = { x: -i, y: -i, z: -i };
+          result[index++] = { x: i, y: -i, z: i };
+          result[index++] = { x: i, y: i, z: i };
+          result[index++] = { x: -i, y: i, z: i };
+          result[index++] = { x: -i, y: -i, z: i };
+        }
+      }
+      return result;
+    }
+    const result: Point3DLike[] = [];
+    const radius2 = constrainer === Offset3D.Sphere ? radius ** 2 : constrainer === Offset3D.SphereRound ? (radius + 0.5) ** 2 : 0;
+    for (let x = -radius; x <= radius; ++x) {
+      for (let y = -radius; y <= radius; ++y) {
+        for (let z = -radius; z <= radius; ++z) {
+          if (
+            (x !== 0 || y !== 0 || z !== 0) &&
+            (constrainer === Offset3D.Cube ||
+              (constrainer === Offset3D.Sphere && x ** 2 + y ** 2 + z ** 2 <= radius2) ||
+              (constrainer === Offset3D.SphereRound && x ** 2 + y ** 2 + z ** 2 < radius2) ||
+              (constrainer === Offset3D.Diamond && Math.abs(x) + Math.abs(y) + Math.abs(z) <= radius) ||
+              (typeof constrainer === 'function' && constrainer({ x, y, z })))
+          ) { result.push({ x, y, z }); }
+        }
+      }
+    }
+    return result;
   }
   static getBounds(iterable: Iterable<Point3DLike>): Bounds3D {
     const items = [...iterable];

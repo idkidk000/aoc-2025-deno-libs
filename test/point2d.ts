@@ -130,7 +130,7 @@ for (const test of tests) {
         await wait();
         const { unpacked, time: unpackTime } = unpack(method, packed, bounds);
 
-        const pass = unpacked.length === points.length && unpacked.every((point, i) => points[i].eq(point));
+        const pass = unpacked.length === points.length && unpacked.every((point, i) => points[i].isEqual(point));
 
         logger[pass ? 'debugLow' : 'warn']({ test, method, run, pack: MathsUtils.roundTo(packTime), unpack: MathsUtils.roundTo(unpackTime), pass });
         results[method][test].push({ pack: packTime, unpack: unpackTime, pass });
