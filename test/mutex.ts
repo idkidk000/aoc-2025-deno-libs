@@ -1,5 +1,5 @@
 import { Logger } from '@/lib/logger.0.ts';
-import { Mutex, Semaphore } from '@/lib/mutex.ts';
+import { Mutex, Semaphore } from '../lib/mutex.0.ts';
 
 const logger = new Logger(import.meta.url);
 const mutex = new Mutex();
