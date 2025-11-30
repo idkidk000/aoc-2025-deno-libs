@@ -21,7 +21,7 @@ export enum Offset2D {
   Diagonal,
   Square,
   Circle,
-  CircleRound,
+  CirclePlus,
   Diamond,
 }
 
@@ -133,17 +133,26 @@ export class Point2D implements Point2DLike {
       return result;
     }
     const result: Point2DLike[] = [];
-    const radius2 = constrainer === Offset2D.Circle ? radius ** 2 : constrainer === Offset2D.CircleRound ? (radius + 0.5) ** 2 : 0;
-    for (let x = -radius; x <= radius; ++x) {
-      for (let y = -radius; y <= radius; ++y) {
-        if (
-          (x !== 0 || y !== 0) &&
-          (constrainer === Offset2D.Square ||
-            (constrainer === Offset2D.Circle && x ** 2 + y ** 2 <= radius2) ||
-            (constrainer === Offset2D.CircleRound && x ** 2 + y ** 2 < radius2) ||
-            (constrainer === Offset2D.Diamond && Math.abs(x) + Math.abs(y) <= radius) ||
-            (typeof constrainer === 'function' && constrainer({ x, y })))
-        ) { result.push({ x, y }); }
+    if (typeof constrainer === 'function') {
+      for (let x = -radius; x <= radius; ++x) {
+        for (let y = -radius; y <= radius; ++y)
+          if (constrainer({ x, y })) result.push({ x, y });
+      }
+      return result;
+    } else {
+      const radius2 = constrainer === Offset2D.Circle ? radius ** 2 : constrainer === Offset2D.CirclePlus ? (radius + 0.5) ** 2 : 0;
+      for (let x = 0; x <= radius; ++x) {
+        for (let y = 0; y <= radius; ++y) {
+          if (
+            (x !== 0 || y !== 0) &&
+            (constrainer === Offset2D.Square ||
+              (constrainer === Offset2D.Circle && x ** 2 + y ** 2 <= radius2) ||
+              (constrainer === Offset2D.CirclePlus && x ** 2 + y ** 2 < radius2) ||
+              (constrainer === Offset2D.Diamond && x + y <= radius))
+          ) {
+            result.push({ x, y }, { x, y: -y }, { x: -x, y }, { x: -x, y: -y });
+          } else { continue; }
+        }
       }
     }
     return result;

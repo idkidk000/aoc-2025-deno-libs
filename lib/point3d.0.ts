@@ -24,7 +24,7 @@ export enum Offset3D {
   Diagonal,
   Cube,
   Sphere,
-  SphereRound,
+  SpherePlus,
   Diamond,
 }
 
@@ -142,18 +142,37 @@ export class Point3D implements Point3DLike {
       return result;
     }
     const result: Point3DLike[] = [];
-    const radius2 = constrainer === Offset3D.Sphere ? radius ** 2 : constrainer === Offset3D.SphereRound ? (radius + 0.5) ** 2 : 0;
-    for (let x = -radius; x <= radius; ++x) {
-      for (let y = -radius; y <= radius; ++y) {
-        for (let z = -radius; z <= radius; ++z) {
-          if (
-            (x !== 0 || y !== 0 || z !== 0) &&
-            (constrainer === Offset3D.Cube ||
-              (constrainer === Offset3D.Sphere && x ** 2 + y ** 2 + z ** 2 <= radius2) ||
-              (constrainer === Offset3D.SphereRound && x ** 2 + y ** 2 + z ** 2 < radius2) ||
-              (constrainer === Offset3D.Diamond && Math.abs(x) + Math.abs(y) + Math.abs(z) <= radius) ||
-              (typeof constrainer === 'function' && constrainer({ x, y, z })))
-          ) { result.push({ x, y, z }); }
+    if (typeof constrainer === 'function') {
+      for (let x = -radius; x <= radius; ++x) {
+        for (let y = -radius; y <= radius; ++y) {
+          for (let z = -radius; z <= radius; ++z)
+            if (constrainer({ x, y, z })) result.push({ x, y, z });
+        }
+      }
+    } else {
+      const radius2 = constrainer === Offset3D.Sphere ? radius ** 2 : constrainer === Offset3D.SpherePlus ? (radius + 0.5) ** 2 : 0;
+      for (let x = 0; x <= radius; ++x) {
+        for (let y = 0; y <= radius; ++y) {
+          for (let z = 0; z <= radius; ++z) {
+            if (
+              (x !== 0 || y !== 0 || z !== 0) &&
+              (constrainer === Offset3D.Cube ||
+                (constrainer === Offset3D.Sphere && x ** 2 + y ** 2 + z ** 2 <= radius2) ||
+                (constrainer === Offset3D.SpherePlus && x ** 2 + y ** 2 + z ** 2 < radius2) ||
+                (constrainer === Offset3D.Diamond && Math.abs(x) + Math.abs(y) + Math.abs(z) <= radius))
+            ) {
+              result.push(
+                { x, y, z },
+                { x, y, z: -z },
+                { x, y: -y, z },
+                { x, y: -y, z: -z },
+                { x: -x, y, z },
+                { x: -x, y, z: -z },
+                { x: -x, y: -y, z },
+                { x: -x, y: -y, z: -z },
+              );
+            } else { continue; }
+          }
         }
       }
     }
