@@ -1,6 +1,6 @@
 import { ansiStyles, Logger } from '@/lib/logger.0.ts';
 import { Bounds2D, Point2D } from '@/lib/point2d.0.ts';
-import { MathsUtils } from '@/lib/maths-utils.0.ts';
+import { Utils } from '@/lib/utils.0.ts';
 
 const methods = ['smallInt', 'smallIntUnsafe', 'main', 'hash'] as const;
 const tests = ['smallInt', 'largeInt', 'smallFloat', 'largeFloat'] as const;
@@ -132,7 +132,7 @@ for (const test of tests) {
 
         const pass = unpacked.length === points.length && unpacked.every((point, i) => points[i].isEqual(point));
 
-        logger[pass ? 'debugLow' : 'warn']({ test, method, run, pack: MathsUtils.roundTo(packTime), unpack: MathsUtils.roundTo(unpackTime), pass });
+        logger[pass ? 'debugLow' : 'warn']({ test, method, run, pack: Utils.roundTo(packTime), unpack: Utils.roundTo(unpackTime), pass });
         results[method][test].push({ pack: packTime, unpack: unpackTime, pass });
       } catch (err) {
         logger.warn({ test, method, run }, String(err));
@@ -151,8 +151,8 @@ Object.entries(results).forEach(([method, methodData]) => {
     logger.info(`  ${test}: ${testPass ? PASS : FAIL}`);
     for (const operation of operations) {
       const times = testData.map((item) => item[operation]).filter((item) => item !== -1);
-      const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
-      const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
+      const [min, max] = Utils.minMax(...times).map(Utils.roundTo);
+      const avg = Utils.roundTo(Utils.mean(...times));
       const throws = runs - times.length;
       logger.info(`    ${operation}`, { min, max, avg, throws });
     }

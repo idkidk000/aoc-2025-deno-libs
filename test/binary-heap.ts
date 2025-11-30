@@ -1,6 +1,6 @@
 import { BinaryHeap } from '@/lib/binary-heap.0.ts';
 import { ansiStyles, Logger } from '@/lib/logger.0.ts';
-import { MathsUtils } from '@/lib/maths-utils.0.ts';
+import { Utils } from '@/lib/utils.0.ts';
 
 const logger = new Logger(import.meta.url);
 const comparator = (a: number, b: number) => a - b;
@@ -41,7 +41,7 @@ logger.info(
 );
 for (const operation of ['write', 'read'] as const) {
   const times = results.map((result) => result[operation]);
-  const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
-  const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
+  const [min, max] = Utils.minMax(...times).map(Utils.roundTo);
+  const avg = Utils.roundTo(Utils.mean(...times));
   logger.info(`  ${operation}`, { min, max, avg });
 }

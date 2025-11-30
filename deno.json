@@ -26,5 +26,6 @@
       ],
       "tags": ["recommended"]
     }
-  }
+  },
+  "minimumDependencyAge": "P2D"
 }

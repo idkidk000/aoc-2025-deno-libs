@@ -4,7 +4,7 @@ import { Logger } from '@/lib/logger.0.ts';
 import { PackedMap } from '@/lib/packed-map.0.ts';
 import { PackedSet } from '@/lib/packed-set.0.ts';
 import { Point2D } from '@/lib/point2d.0.ts';
-import { MathsUtils } from '@/lib/maths-utils.0.ts';
+import { Utils } from '@/lib/utils.0.ts';
 
 const logger = new Logger(import.meta.url);
 const results: Record<'packedSet' | 'hashedSet' | 'packedMap' | 'hashedMap', { write: number[]; read: number[] }> = {
@@ -75,8 +75,8 @@ Object.entries(results).forEach(([key, data]) => {
   logger.success(key);
   for (const test of ['write', 'read'] as const) {
     const times = data[test];
-    const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
-    const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
+    const [min, max] = Utils.minMax(...times).map(Utils.roundTo);
+    const avg = Utils.roundTo(Utils.mean(...times));
     logger.info(test, { min, max, avg });
   }
 });

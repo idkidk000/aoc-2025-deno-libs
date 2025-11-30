@@ -1,6 +1,6 @@
 import { CoordSystem, Grid } from '@/lib/grid.0.ts';
 import { ansiStyles, Logger } from '@/lib/logger.0.ts';
-import { MathsUtils } from '@/lib/maths-utils.0.ts';
+import { Utils } from '@/lib/utils.0.ts';
 
 const logger = new Logger(import.meta.url);
 const systems = ['rc', 'xy'] as const;
@@ -89,8 +89,8 @@ for (const [key, data] of Object.entries(results)) {
   );
   for (const time of measureTimes) {
     const times = data.map((item) => item.time[time]);
-    const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
-    const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
+    const [min, max] = Utils.minMax(...times).map(Utils.roundTo);
+    const avg = Utils.roundTo(Utils.mean(...times));
     logger.info(`  ${time}`, { min, max, avg });
   }
 }

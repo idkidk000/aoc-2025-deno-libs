@@ -1,5 +1,5 @@
 import { ansiStyles, Logger } from '@/lib/logger.0.ts';
-import { MathsUtils } from '@/lib/maths-utils.0.ts';
+import { Utils } from '@/lib/utils.0.ts';
 import { Deque, DequeArrayLike, DequeArrayLike2 } from '@/lib/deque.0.ts';
 
 const logger = new Logger(import.meta.url);
@@ -61,9 +61,9 @@ for (const constructor of classes) {
       );
 
       logger.info(constructor.name, test, run, {
-        push: MathsUtils.roundTo(pushTime),
-        iter: MathsUtils.roundTo(iterTime),
-        pop: MathsUtils.roundTo(popTime),
+        push: Utils.roundTo(pushTime),
+        iter: Utils.roundTo(iterTime),
+        pop: Utils.roundTo(popTime),
         iterPass,
       });
       results.get(constructor.name)?.get(test)?.push({ iter: iterTime, iterPass, pop: popTime, popPass, push: pushTime });
@@ -92,8 +92,8 @@ for (const [className, data] of results.entries()) {
     );
     for (const operation of ['push', 'iter', 'pop'] as const) {
       const times = testData.map((item) => item[operation]);
-      const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
-      const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
+      const [min, max] = Utils.minMax(...times).map(Utils.roundTo);
+      const avg = Utils.roundTo(Utils.mean(...times));
       logger.info(`  ${operation}`, { min, max, avg });
     }
   }

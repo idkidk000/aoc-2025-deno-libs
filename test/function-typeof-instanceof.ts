@@ -1,5 +1,5 @@
 import { Logger } from '@/lib/logger.0.ts';
-import { MathsUtils } from '@/lib/maths-utils.0.ts';
+import { Utils } from '@/lib/utils.0.ts';
 
 const iters = 100_000_000;
 const runs = 10;
@@ -33,7 +33,7 @@ for (let run = 0; run < runs; ++run) {
 
 for (const test of tests) {
   const times = results.map((item) => item[test]);
-  const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
-  const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
+  const [min, max] = Utils.minMax(...times).map(Utils.roundTo);
+  const avg = Utils.roundTo(Utils.mean(...times));
   logger.success(test, { min, max, avg });
 }

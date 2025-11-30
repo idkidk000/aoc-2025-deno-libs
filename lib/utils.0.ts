@@ -19,7 +19,7 @@ function gcd(left: number, right: number): number {
   return left;
 }
 
-export const MathsUtils = {
+export const Utils = {
   clamp(value: number, min: number, max: number): number {
     return Math.max(Math.min(value, max), min);
   },
@@ -51,9 +51,24 @@ export const MathsUtils = {
   sum(...values: number[]): number {
     return values.reduce((acc, item) => acc + item, 0);
   },
-  avg(...values: number[]): number {
+  mean(...values: number[]): number {
+    if (values.length === 0) return NaN;
     const total = values.reduce((acc, item) => acc + item, 0);
-    return total / (values.length || 1);
+    return total / values.length;
+  },
+  median(...values: number[]): number {
+    if (values.length === 0) return NaN;
+    if (values.length % 2 === 1) return values[Math.floor(values.length / 2)];
+    const [a, b] = [values[Math.floor(values.length / 2)], values[Math.ceil(values.length / 2)]];
+    return (a + b) / 2;
+  },
+  mode(...values: number[]): number {
+    if (values.length === 0) return NaN;
+    const counts = new Map<number, number>();
+    for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+    const [maxCount] = counts.values().toArray().toSorted((a, b) => b - a);
+    const topValues = counts.entries().filter(([, count]) => count === maxCount).map(([value]) => value).toArray();
+    return Utils.mean(...topValues);
   },
   /** positive modulo */
   modP(value: number, mod: number) {
@@ -63,5 +78,14 @@ export const MathsUtils = {
   roundTo: (value: number, digits = 3) => {
     const multiplier = 10 ** digits;
     return Math.round(value * multiplier) / multiplier;
+  },
+  groupBy: <Item, Key>(items: Iterable<Item>, selector: (value: Item) => Key): Map<Key, Item[]> => {
+    const grouped = new Map<Key, Item[]>();
+    for (const item of items) {
+      const key = selector(item);
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)?.push(item);
+    }
+    return grouped;
   },
 };

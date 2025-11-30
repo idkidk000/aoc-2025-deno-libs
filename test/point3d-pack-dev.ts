@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-console no-unused-vars
 import { Point3D, Point3DLike } from '@/lib/point3d.0.ts';
 import { HashedSet } from '@/lib/hashed-set.0.ts';
-import { MathsUtils } from '@/lib/maths-utils.0.ts';
+import { Utils } from '@/lib/utils.0.ts';
 
 const [runs, length] = Deno.args.includes('-vfast') ? [1, 1000] : Deno.args.includes('-fast') ? [5, 1_000_000] : [10, 10_000_000];
 
@@ -17,11 +17,11 @@ const makePoints = (test: Test): Point3DLike[] => {
   const make = () => {
     switch (test) {
       case 'largeFloat':
-        return MathsUtils.roundTo((Math.random() - 0.5) * Number.MAX_SAFE_INTEGER, 1);
+        return Utils.roundTo((Math.random() - 0.5) * Number.MAX_SAFE_INTEGER, 1);
       case 'largeInt':
         return Math.round((Math.random() - 0.5) * Number.MAX_SAFE_INTEGER);
       case 'smallFloat':
-        return MathsUtils.roundTo((Math.random() - 0.5) * 2 * 4095, 1);
+        return Utils.roundTo((Math.random() - 0.5) * 2 * 4095, 1);
       // case 'smallInt':
       //   return Math.round((Math.random() - 0.5) * 2 * (length / 100));
       default:

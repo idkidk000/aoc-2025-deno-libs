@@ -5,7 +5,7 @@
 
 import { ansiStyles, Logger } from '@/lib/logger.0.ts';
 import { Offset2D, Point2D, Point2DLike } from '@/lib/point2d.0.ts';
-import { MathsUtils } from '@/lib/maths-utils.0.ts';
+import { Utils } from '@/lib/utils.0.ts';
 import { HashedSet } from '@/lib/hashed-set.0.ts';
 
 const [runs, length] = Deno.args.includes('-vfast') ? [1, 1000] : Deno.args.includes('-fast') ? [5, 1_000_000] : [10, 10_000_000];
@@ -122,8 +122,8 @@ for (let run = 0; run < runs; ++run) {
       for (const resultType of ['rate', 'pack', 'unpack', 'set'] as const) {
         const data = results.get(method)?.[test].map((item) => item[resultType]);
         if (!data) continue;
-        const [min, max] = MathsUtils.minMax(...data).map((item) => resultType === 'rate' ? `${MathsUtils.roundTo(item * 100, 5)}%` : MathsUtils.roundTo(item));
-        const avg = resultType === 'rate' ? `${MathsUtils.roundTo(MathsUtils.avg(...data) * 100, 5)}%` : MathsUtils.roundTo(MathsUtils.avg(...data));
+        const [min, max] = Utils.minMax(...data).map((item) => resultType === 'rate' ? `${Utils.roundTo(item * 100, 5)}%` : Utils.roundTo(item));
+        const avg = resultType === 'rate' ? `${Utils.roundTo(Utils.mean(...data) * 100, 5)}%` : Utils.roundTo(Utils.mean(...data));
         logger.info('    ', resultType, { min, max, avg });
       }
     }

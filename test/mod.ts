@@ -1,5 +1,5 @@
 import { ansiStyles, Logger } from '@/lib/logger.0.ts';
-import { MathsUtils } from '@/lib/maths-utils.0.ts';
+import { Utils } from '@/lib/utils.0.ts';
 
 const tests = ['mod', 'trunc', 'shift'] as const;
 type Test = (typeof tests)[number];
@@ -43,8 +43,8 @@ for (let run = 0; run < runs; ++run) {
 
 for (const test of tests) {
   const times = results[test];
-  const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
-  const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
+  const [min, max] = Utils.minMax(...times).map(Utils.roundTo);
+  const avg = Utils.roundTo(Utils.mean(...times));
   logger.info(ansiStyles.bold, test, ansiStyles.reset);
   logger.info('  ', { min, max, avg });
 }

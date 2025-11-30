@@ -1,6 +1,6 @@
 import { BinaryHeap } from '@/lib/binary-heap.0.ts';
 import { ansiStyles, Logger } from '@/lib/logger.0.ts';
-import { MathsUtils } from '@/lib/maths-utils.0.ts';
+import { Utils } from '@/lib/utils.0.ts';
 
 const logger = new Logger(import.meta.url);
 const comparator = (a: number, b: number) => a - b;
@@ -69,13 +69,13 @@ for (const [test, data] of Object.entries(results)) {
     test,
     pass ? ansiStyles.fgIntense.green : ansiStyles.fgIntense.red,
     pass ? 'PASS' : 'FAIL',
-    `${rate > 0 && rate < 1 ? ansiStyles.fgIntense.yellow : ''}${MathsUtils.roundTo(rate * 100)}%`,
+    `${rate > 0 && rate < 1 ? ansiStyles.fgIntense.yellow : ''}${Utils.roundTo(rate * 100)}%`,
     ansiStyles.reset,
   );
   for (const method of ['construct', 'has'] as const) {
     const times = data.map((item) => item[method]);
-    const [min, max] = MathsUtils.minMax(...times).map(MathsUtils.roundTo);
-    const avg = MathsUtils.roundTo(MathsUtils.avg(...times));
+    const [min, max] = Utils.minMax(...times).map(Utils.roundTo);
+    const avg = Utils.roundTo(Utils.mean(...times));
     logger.info('  ', method.padEnd(10, ' '), { min, max, avg });
   }
 }

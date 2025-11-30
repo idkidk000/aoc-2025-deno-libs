@@ -100,11 +100,14 @@ export class Logger {
     if (parts.length) return `${ansiStyles.bold}${colour}[${parts.join(' ')}]${ansiStyles.reset}`;
     return '';
   }
-  #log(levelName: LevelName, ...message: unknown[]) {
-    const { colour, method, value } = levels[levelName];
-    if (value < this.#levelValue) return;
-    const prefix = this.#makePrefix(levelName, colour);
-    console[method](prefix, ...message);
+  #log(levelName: LevelName | null, ...message: unknown[]) {
+    if (levelName === null) console.log(...message);
+    else {
+      const { colour, method, value } = levels[levelName];
+      if (value < this.#levelValue) return;
+      const prefix = this.#makePrefix(levelName, colour);
+      console[method](prefix, ...message);
+    }
   }
   constructor(
     importMetaUrl: string,
@@ -146,5 +149,8 @@ export class Logger {
   }
   setLevel(logLevel: LevelName | number) {
     this.#levelValue = (typeof logLevel === 'number') ? this.#levelValue = logLevel : levels[logLevel].value;
+  }
+  plain(...message: unknown[]) {
+    this.#log(null, ...message);
   }
 }
