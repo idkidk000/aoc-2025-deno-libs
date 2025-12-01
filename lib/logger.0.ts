@@ -1,5 +1,3 @@
-// DONE
-
 import { Console } from 'node:console';
 import { relative, sep } from 'node:path';
 import { cwd, stderr, stdout } from 'node:process';
@@ -112,9 +110,9 @@ export class Logger {
   constructor(
     importMetaUrl: string,
     name?: string,
-    { logLevel = 'Debug:High', logDate = LogDate.None, showLevel = true, showPath = true }: {
+    { logLevel = 'Debug:High', showDate = LogDate.None, showLevel = true, showPath = true }: {
       logLevel?: LevelName | number;
-      logDate?: LogDate;
+      showDate?: LogDate;
       showPath?: boolean;
       showLevel?: boolean;
     } = {},
@@ -122,8 +120,8 @@ export class Logger {
     this.#name = `${showPath ? relative(cwd(), fileURLToPath(importMetaUrl)).split(sep).slice(-MAX_PATH_DEPTH).join(sep) : ''}${showPath && name ? ':' : ''}${
       name ?? ''
     }`;
-    this.#levelValue = (typeof logLevel === 'number') ? this.#levelValue = logLevel : levels[logLevel].value;
-    this.#showDate = logDate;
+    this.#levelValue = (typeof logLevel === 'number') ? logLevel : levels[logLevel].value;
+    this.#showDate = showDate;
     this.#showLevel = showLevel;
   }
   debugHigh(...message: unknown[]) {
@@ -152,5 +150,13 @@ export class Logger {
   }
   plain(...message: unknown[]) {
     this.#log(null, ...message);
+  }
+  makeChild(name: string): Logger {
+    const logger = new Logger(import.meta.url);
+    logger.#levelValue = this.#levelValue;
+    logger.#name = `${this.#name}:${name}`;
+    logger.#showDate = this.#showDate;
+    logger.#showLevel = this.#showLevel;
+    return logger;
   }
 }
