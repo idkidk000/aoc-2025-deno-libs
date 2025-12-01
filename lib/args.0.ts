@@ -1,13 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Logger } from '@/lib/logger.0.ts';
 
-const DEFAULTS = {
+const BASE_DEFAULTS = {
   fileName: 'input.txt',
   logLevel: 0,
   part: 0,
 };
-type Defaults = typeof DEFAULTS;
+type Defaults = typeof BASE_DEFAULTS;
 
 /** Parses the following args:
  * - `-f` `fileName` loads puzzle input from `fileName(\.txt)?`. Default `input.txt`
@@ -16,8 +17,8 @@ type Defaults = typeof DEFAULTS;
  */
 export function parseArgs(importMetaUrl: string, defaults?: Partial<Defaults>) {
   const parsed: Defaults = {
+    ...BASE_DEFAULTS,
     ...defaults,
-    ...DEFAULTS,
   };
   const raw = [...Deno.args];
   while (raw.length) {
@@ -32,5 +33,7 @@ export function parseArgs(importMetaUrl: string, defaults?: Partial<Defaults>) {
   }
   const filePath = join(dirname(fileURLToPath(importMetaUrl)), parsed.fileName);
   const data = readFileSync(filePath, { encoding: 'utf-8' });
-  return { ...parsed, data, part1: parsed.part !== 2, part2: parsed.part !== 1 };
+  const logger = new Logger(importMetaUrl, undefined, { logLevel: parsed.logLevel });
+  logger.debugLow(parsed);
+  return { ...parsed, data, part1: parsed.part !== 2, part2: parsed.part !== 1, logger };
 }

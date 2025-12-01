@@ -160,7 +160,6 @@ export class Grid<Item, System extends CoordSystem> {
 
   // row/col/cell iterator, get, and set methods
   *rowItems(): Generator<Item[], void, void> {
-    //FIXME: reverse order when xy
     if (this.system === CoordSystem.Rc) { for (let r = 0; r < this.#rows; ++r) yield this.#array.slice(r * this.#cols, (r + 1) * this.#cols); }
     else { for (let r = this.#rows - 1; r >= 0; --r) yield this.#array.slice(r * this.#cols, (r + 1) * this.#cols); }
   }
