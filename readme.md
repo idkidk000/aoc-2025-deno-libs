@@ -1,6 +1,6 @@
 # Advent of Code 2025 Deno Libs
 
-### `parseArgs`
+### `AocArgParser`, `EcArgParser`
 
 You will never guess.
 

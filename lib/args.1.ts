@@ -4,26 +4,43 @@ import { fileURLToPath } from 'node:url';
 import { Logger } from '@/lib/logger.0.ts';
 
 abstract class ArgParser {
-  protected abstract _fileName: string;
-  protected abstract _logger: Logger;
-  protected abstract _part: number;
-  protected abstract _importMetaUrl: string;
-  get fileName() {
-    return this._fileName;
+  #logger: Logger;
+  #importMetaUrl: string;
+  constructor(
+    importMetaUrl: string,
+    logLevel: number,
+    public readonly fileName: string,
+    public readonly part: number,
+  ) {
+    this.#importMetaUrl = importMetaUrl;
+    this.#logger = new Logger(importMetaUrl, undefined, { logLevel });
   }
   get logger() {
-    return this._logger;
+    return this.#logger;
   }
   get data(): string {
-    const filePath = join(dirname(fileURLToPath(this._importMetaUrl)), this._fileName);
+    const filePath = join(dirname(fileURLToPath(this.#importMetaUrl)), this.fileName);
     return readFileSync(filePath, { encoding: 'utf-8' });
-  }
-  get part() {
-    return this._part;
   }
 }
 
 type ArgParserDefaults = { fileName: string; logLevel: number; part: number };
+
+function parseArgs(): Partial<ArgParserDefaults> {
+  const args = [...Deno.args].toReversed();
+  const parsed: Partial<ArgParserDefaults> = {};
+  while (args.length) {
+    const key = args.pop();
+    if (typeof key === 'undefined') break;
+    if (!['-f', '-l', '-p'].includes(key)) throw new Error(`unknown arg ${key}`);
+    const val = args.pop();
+    if (typeof val === 'undefined') throw new Error(`missing value for arg ${key}`);
+    if (key === '-f') parsed.fileName = `${val.replace(/\.txt$/, '')}.txt`;
+    if (key === '-l') parsed.logLevel = parseInt(val);
+    if (key === '-p') parsed.part = parseInt(val);
+  }
+  return parsed;
+}
 
 /** Parses the following args:
  * - `-f` `fileName` loads puzzle input from `fileName(\.txt)?`. Default `input.txt`
@@ -31,33 +48,15 @@ type ArgParserDefaults = { fileName: string; logLevel: number; part: number };
  * - `-p` `part` selects which part of the puzzle to run - `1` is `part1`, `2` is `part2`, other is `both`. Default `0`
  */
 export class AocArgParser extends ArgParser {
-  protected _fileName: string;
-  protected _logger: Logger;
-  protected _part: number;
-  protected _importMetaUrl: string;
   constructor(importMetaUrl: string, defaults?: Partial<ArgParserDefaults>) {
-    super();
-    const args = [...Deno.args].toReversed();
     const parsed: ArgParserDefaults = {
       fileName: 'input.txt',
       logLevel: 3,
-      part: 1,
+      part: 0,
       ...defaults,
+      ...parseArgs(),
     };
-    while (args.length) {
-      const key = args.pop();
-      if (typeof key === 'undefined') break;
-      if (!['-f', '-l', '-p'].includes(key)) throw new Error(`unknown arg ${key}`);
-      const val = args.pop();
-      if (typeof val === 'undefined') throw new Error(`missing value for arg ${key}`);
-      if (key === '-f') parsed.fileName = `${val.replace(/\.txt$/, '')}.txt`;
-      if (key === '-l') parsed.logLevel = parseInt(val);
-      if (key === '-p') parsed.part = parseInt(val);
-    }
-    this._fileName = parsed.fileName;
-    this._logger = new Logger(importMetaUrl, undefined, { logLevel: parsed.logLevel });
-    this._part = parsed.part;
-    this._importMetaUrl = importMetaUrl;
+    super(importMetaUrl, parsed.logLevel, parsed.fileName, parsed.part);
   }
 }
 
@@ -67,31 +66,13 @@ export class AocArgParser extends ArgParser {
  * - `-p` `part` selects which part of the puzzle to run - `1` is `part1`, etc. Default `1`
  */
 export class EcArgParser extends ArgParser {
-  protected _fileName: string;
-  protected _logger: Logger;
-  protected _part: number;
-  protected _importMetaUrl: string;
   constructor(importMetaUrl: string, defaults?: Partial<ArgParserDefaults>) {
-    super();
-    const args = [...Deno.args].toReversed();
     const parsed: Omit<ArgParserDefaults, 'fileName'> & { fileName?: string } = {
       logLevel: 3,
       part: 1,
       ...defaults,
+      ...parseArgs(),
     };
-    while (args.length) {
-      const key = args.pop();
-      if (typeof key === 'undefined') break;
-      if (!['-f', '-l', '-p'].includes(key)) throw new Error(`unknown arg ${key}`);
-      const val = args.pop();
-      if (typeof val === 'undefined') throw new Error(`missing value for arg ${key}`);
-      if (key === '-f') parsed.fileName = `${val.replace(/\.txt$/, '')}.txt`;
-      if (key === '-l') parsed.logLevel = parseInt(val);
-      if (key === '-p') parsed.part = parseInt(val);
-    }
-    this._fileName = parsed.fileName ?? `part${parsed.part}.txt`;
-    this._logger = new Logger(importMetaUrl, undefined, { logLevel: parsed.logLevel });
-    this._part = parsed.part;
-    this._importMetaUrl = importMetaUrl;
+    super(importMetaUrl, parsed.logLevel, parsed.fileName ?? `part${parsed.part}.txt`, parsed.part);
   }
 }
