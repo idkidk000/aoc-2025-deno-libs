@@ -9,7 +9,7 @@ export class PackedSet<Key, Packed = string | number | bigint> {
   #set: Set<Packed>;
   constructor(
     public readonly packer: (key: Key) => Packed,
-    public readonly unpacker: (hash: Packed) => Key,
+    public readonly unpacker?: (hash: Packed) => Key,
     iterable?: Iterable<Key>,
     packedIterable?: Iterable<Packed>,
   ) {
@@ -29,14 +29,18 @@ export class PackedSet<Key, Packed = string | number | bigint> {
     return new PackedSet(this.packer, this.unpacker, undefined, this.#set.difference(other.#set));
   }
   entries(): SetIterator<[Key, Key]> {
+    if (!this.unpacker) throw new Error('unpacker is required for `entries()` method');
     return this.#set.keys().map((packed) => {
-      const key = this.unpacker(packed);
+      // deno-lint-ignore no-non-null-assertion
+      const key = this.unpacker!(packed);
       return [key, key];
     });
   }
   forEach(callback: (value: Key, value2: Key, packedSet: PackedSet<Key, Packed>) => void): void {
+    if (!this.unpacker) throw new Error('unpacker is required for `forEach()` method');
     return this.#set.keys().forEach((packed) => {
-      const key = this.unpacker(packed);
+      // deno-lint-ignore no-non-null-assertion
+      const key = this.unpacker!(packed);
       return callback(key, key, this);
     });
   }
@@ -56,6 +60,7 @@ export class PackedSet<Key, Packed = string | number | bigint> {
     return this.#set.isSupersetOf(other.#set);
   }
   keys(): SetIterator<Key> {
+    if (!this.unpacker) throw new Error('unpacker is required for `keys()` method');
     return this.#set.keys().map(this.unpacker);
   }
   get size() {
@@ -68,7 +73,11 @@ export class PackedSet<Key, Packed = string | number | bigint> {
     return new PackedSet(this.packer, this.unpacker, undefined, this.#set.union(other.#set));
   }
   values(): SetIterator<Key> {
+    if (!this.unpacker) throw new Error('unpacker is required for `values()` method');
     return this.#set.keys().map(this.unpacker);
+  }
+  packs(): SetIterator<Packed> {
+    return this.#set.keys();
   }
   clone(): PackedSet<Key, Packed> {
     return new PackedSet(this.packer, this.unpacker, undefined, this.#set);

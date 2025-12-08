@@ -201,7 +201,7 @@ export class Point2D implements Point2DLike {
   }
   /** Much faster than `pack` and slightly faster than `hash`
    *
-   * Only useful for small integers and small low-precision floats which can fit into f32 */
+   * Only useful for integers between -16,777,216 and 16,777,216 and small low-precision floats which can fit into f32 */
   static pack32(value: Point2DLike): number {
     // reading the array buffer as a bigUint64 also works but it's not as fast, and takes longer to add to a set
     float32Array[0] = value.x;
@@ -215,7 +215,7 @@ export class Point2D implements Point2DLike {
   }
   /** Much faster than `pack`, slightly slower than `pack32`
    *
-   * 0% collisions on 10m unique clustered inputs each of small int, small float, large int, large float */
+   * 0 collisions on 10m unique clustered inputs each of small int, small float, large int, large float */
   static hash(value: Point2DLike): number {
     // fill out the significand. there's probably a better way to do this
     float64Array[0] = value.x * Math.LOG2E;

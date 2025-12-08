@@ -223,7 +223,7 @@ export class Point3D implements Point3DLike {
   }
   /** Much faster than `pack` but slower than `pack(Int|Float)21`
    *
-   * Only useful for small integers and small low-precision floats which can fit into f32
+   * Only useful for integers between -16,777,216 and 16,777,216 and small low-precision floats which can fit into f32
    * @returns 96-bit wide bigint */
   static pack32(value: Point3DLike): bigint {
     float32Array[0] = value.x;
@@ -241,7 +241,7 @@ export class Point3D implements Point3DLike {
    *
    * Truncates x, y, and z to 21-bit biased ints
    *
-   * Only useful for small integers which can fit into i21 */
+   * Only useful for small integers between -524,288 and 524,288 */
   static packInt21(value: Point3DLike): number {
     uint32Array[0] = value.x + PACK_INT_21_BIAS;
     uint32Array[1] = value.y + PACK_INT_21_BIAS;
@@ -364,7 +364,7 @@ export class Point3D implements Point3DLike {
   }
   /** As fast as `packInt21`
    *
-   * 0% collisions on 10m unique clustered inputs each of small int, small float, large int, large float */
+   * 0 collisions on 10m unique clustered inputs each of small int, small float, large int, large float */
   static hash(value: Point3DLike): number {
     // fill out the significand. there's probably a better way to do this
     float64Array[0] = value.x * Math.LOG2E;
