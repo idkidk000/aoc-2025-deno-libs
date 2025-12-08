@@ -1,5 +1,5 @@
-import { Logger } from '@/lib/logger.0.ts';
-import { Utils } from '@/lib/utils.0.ts';
+import { Logger } from '@/logger.0.ts';
+import { Utils } from '@/utils.0.ts';
 
 const size = 1000;
 const logger = new Logger(import.meta.url);

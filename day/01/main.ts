@@ -1,5 +1,5 @@
-import { AocArgParser, EcArgParser } from '@/lib/args.1.ts';
-import { Logger } from '@/lib/logger.0.ts';
+import { AocArgParser, EcArgParser } from '../../args.1.ts';
+import { Logger } from '../../logger.0.ts';
 
 function part1(_data: string, _logger: Logger) {
 }

@@ -1,6 +1,6 @@
-import { CoordSystem, Grid } from '@/lib/grid.0.ts';
-import { ansiStyles, Logger } from '@/lib/logger.0.ts';
-import { Utils } from '@/lib/utils.0.ts';
+import { CoordSystem, Grid } from '@/grid.0.ts';
+import { ansiStyles, Logger } from '@/logger.0.ts';
+import { Utils } from '@/utils.0.ts';
 
 const logger = new Logger(import.meta.url);
 const systems = ['rc', 'xy'] as const;

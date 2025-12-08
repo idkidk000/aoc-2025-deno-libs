@@ -1,4 +1,4 @@
-import { Point2D, Point2DLike } from '@/lib/point2d.0.ts';
+import { Point2D, Point2DLike } from '@/point2d.0.ts';
 
 const set = new Set();
 while (true) {

@@ -1,10 +1,10 @@
-import { HashedMap } from '@/lib/hashed-map.0.ts';
-import { HashedSet } from '@/lib/hashed-set.0.ts';
-import { Logger } from '@/lib/logger.0.ts';
-import { PackedMap } from '@/lib/packed-map.0.ts';
-import { PackedSet } from '@/lib/packed-set.0.ts';
-import { Point2D } from '@/lib/point2d.0.ts';
-import { Utils } from '@/lib/utils.0.ts';
+import { HashedMap } from '@/hashed-map.0.ts';
+import { HashedSet } from '@/hashed-set.0.ts';
+import { Logger } from '@/logger.0.ts';
+import { PackedMap } from '@/packed-map.0.ts';
+import { PackedSet } from '@/packed-set.0.ts';
+import { Point2D } from '@/point2d.0.ts';
+import { Utils } from '@/utils.0.ts';
 
 const logger = new Logger(import.meta.url);
 const results: Record<'packedSet' | 'hashedSet' | 'packedMap' | 'hashedMap', { write: number[]; read: number[] }> = {

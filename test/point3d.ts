@@ -1,6 +1,6 @@
-import { ansiStyles, Logger } from '@/lib/logger.0.ts';
-import { Bounds3D, Point3D } from '@/lib/point3d.0.ts';
-import { Utils } from '@/lib/utils.0.ts';
+import { ansiStyles, Logger } from '@/logger.0.ts';
+import { Bounds3D, Point3D } from '@/point3d.0.ts';
+import { Utils } from '@/utils.0.ts';
 
 const methods = ['smallInt', 'smallIntUnsafe', 'main'] as const;
 const tests = ['smallInt', 'largeInt', 'smallFloat', 'largeFloat'] as const;

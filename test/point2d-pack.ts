@@ -3,10 +3,10 @@
  * e.g.: `deno run --v8-flags=--expose-gc test/point2d-pack.ts`
  */
 
-import { ansiStyles, Logger } from '@/lib/logger.0.ts';
-import { Offset2D, Point2D, Point2DLike } from '@/lib/point2d.0.ts';
-import { Utils } from '@/lib/utils.0.ts';
-import { HashedSet } from '@/lib/hashed-set.0.ts';
+import { ansiStyles, Logger } from '@/logger.0.ts';
+import { Offset2D, Point2D, Point2DLike } from '@/point2d.0.ts';
+import { Utils } from '@/utils.0.ts';
+import { HashedSet } from '@/hashed-set.0.ts';
 
 const [runs, length] = Deno.args.includes('-vfast') ? [1, 1000] : Deno.args.includes('-fast') ? [5, 1_000_000] : [10, 10_000_000];
 const logger = new Logger(import.meta.url);

@@ -1,6 +1,6 @@
-import { Logger } from '@/lib/logger.0.ts';
-import { Utils } from '@/lib/utils.0.ts';
-import { Point2D, Point2DLike } from '@/lib/point2d.0.ts';
+import { Logger } from '@/logger.0.ts';
+import { Utils } from '@/utils.0.ts';
+import { Point2D, Point2DLike } from '@/point2d.0.ts';
 
 const logger = new Logger(import.meta.url);
 

@@ -1,7 +1,7 @@
-import { CoordSystem, Grid } from '@/lib/grid.0.ts';
-import { Logger } from '@/lib/logger.0.ts';
-import { Offset2D, Point2D } from '@/lib/point2d.0.ts';
-import { HashedSet } from '@/lib/hashed-set.0.ts';
+import { CoordSystem, Grid } from '@/grid.0.ts';
+import { Logger } from '@/logger.0.ts';
+import { Offset2D, Point2D } from '@/point2d.0.ts';
+import { HashedSet } from '@/hashed-set.0.ts';
 
 const logger = new Logger(import.meta.url);
 const size = 15;

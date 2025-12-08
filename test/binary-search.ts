@@ -1,4 +1,4 @@
-import { Logger } from '@/lib/logger.0.ts';
+import { Logger } from '@/logger.0.ts';
 
 const logger = new Logger(import.meta.url);
 const target = 10_050;

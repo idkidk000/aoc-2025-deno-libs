@@ -1,6 +1,6 @@
-import { Offset2D, Point2D } from '@/lib/point2d.0.ts';
-import { Logger } from '@/lib/logger.0.ts';
-import { Utils } from '@/lib/utils.0.ts';
+import { Offset2D, Point2D } from '@/point2d.0.ts';
+import { Logger } from '@/logger.0.ts';
+import { Utils } from '@/utils.0.ts';
 
 const size = 100;
 const radius = 25;

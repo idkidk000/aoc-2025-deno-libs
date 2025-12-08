@@ -1,7 +1,7 @@
-import { Logger } from '@/lib/logger.0.ts';
+import { Logger } from '@/logger.0.ts';
 import { SortedQueue } from '@/lib/sorted-queue.0.ts';
-import { BinaryHeap } from '@/lib/binary-heap.0.ts';
-import { Utils } from '@/lib/utils.0.ts';
+import { BinaryHeap } from '@/binary-heap.0.ts';
+import { Utils } from '@/utils.0.ts';
 
 const logger = new Logger(import.meta.url);
 const results: Record<'queue' | 'heap', { writes: number[]; reads: number[]; invalid: number }> = {

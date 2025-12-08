@@ -1,6 +1,6 @@
-import { ansiStyles, Logger } from '@/lib/logger.0.ts';
-import { Utils } from '@/lib/utils.0.ts';
-import { Deque, DequeArrayLike, DequeArrayLike2 } from '@/lib/deque.0.ts';
+import { ansiStyles, Logger } from '@/logger.0.ts';
+import { Utils } from '@/utils.0.ts';
+import { Deque, DequeArrayLike, DequeArrayLike2 } from '@/deque.0.ts';
 
 const logger = new Logger(import.meta.url);
 const [runs, length] = Deno.args.includes('-vfast') ? [1, 10] : Deno.args.includes('-fast') ? [10, 100_000] : [10, 1_000_000];

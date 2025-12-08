@@ -1,6 +1,6 @@
 import { Console } from 'node:console';
-import { HashedSet } from '@/lib/hashed-set.0.ts';
-import { Point2D } from '@/lib/point2d.0.ts';
+import { HashedSet } from '@/hashed-set.0.ts';
+import { Point2D } from '@/point2d.0.ts';
 import { stderr, stdout } from 'node:process';
 
 const console = new Console({
