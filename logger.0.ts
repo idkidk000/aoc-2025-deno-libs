@@ -49,6 +49,7 @@ export const ansiStyles = {
   bold: '\x1b[1m',
   underline: '\x1b[4m',
   reset: '\x1b[0m',
+  clear: '\x1bc',
 } as const;
 
 const levels = {
