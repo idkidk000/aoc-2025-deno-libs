@@ -9,7 +9,7 @@ export class PackedMap<Key, Value, Packed = string | number | bigint> {
   #map: Map<Packed, Value>;
   constructor(
     public readonly packer: (key: Key) => Packed,
-    public readonly unpacker: (packed: Packed) => Key,
+    public readonly unpacker?: (packed: Packed) => Key,
     iterable?: Iterable<[Key, Value]>,
     packedIterable?: Iterable<[Packed, Value]>,
   ) {
@@ -22,10 +22,14 @@ export class PackedMap<Key, Value, Packed = string | number | bigint> {
     return this.#map.delete(this.packer(key));
   }
   entries(): MapIterator<[Key, Value]> {
-    return this.#map.entries().map(([packed, value]) => [this.unpacker(packed), value]);
+    if (!this.unpacker) throw new Error('unpacker is required');
+    // deno-lint-ignore no-non-null-assertion
+    return this.#map.entries().map(([packed, value]) => [this.unpacker!(packed), value]);
   }
   forEach(callback: (value: Value, key: Key, packedMap: PackedMap<Key, Value, Packed>) => void) {
-    return this.#map.entries().forEach(([packed, value]) => callback(value, this.unpacker(packed), this));
+    if (!this.unpacker) throw new Error('unpacker is required');
+    // deno-lint-ignore no-non-null-assertion
+    return this.#map.entries().forEach(([packed, value]) => callback(value, this.unpacker!(packed), this));
   }
   get(key: Key) {
     return this.#map.get(this.packer(key));
@@ -34,6 +38,7 @@ export class PackedMap<Key, Value, Packed = string | number | bigint> {
     return this.#map.has(this.packer(key));
   }
   keys(): MapIterator<Key> {
+    if (!this.unpacker) throw new Error('unpacker is required');
     return this.#map.keys().map(this.unpacker);
   }
   set(key: Key, value: Value) {
@@ -45,6 +50,9 @@ export class PackedMap<Key, Value, Packed = string | number | bigint> {
   }
   values(): MapIterator<Value> {
     return this.#map.values();
+  }
+  packs(): MapIterator<Packed> {
+    return this.#map.keys();
   }
   clone(): PackedMap<Key, Value, Packed> {
     return new PackedMap(this.packer, this.unpacker, undefined, this.#map);
