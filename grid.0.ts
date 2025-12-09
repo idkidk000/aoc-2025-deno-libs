@@ -319,12 +319,19 @@ export class Grid<Item, System extends CoordSystem> {
     const maxLength = Math.ceil(Math.log10(this.#rows));
     const rows = new Array<Item[]>(this.#rows);
     for (let r = 0; r < this.#rows; ++r) rows[r] = this.#array.slice(r * this.#cols, (r + 1) * this.#cols);
+    const footer = `${''.padStart(maxLength, ' ')}  ${'0123456789'.repeat(Math.ceil(this.#cols / 10)).slice(0, this.#cols)}${
+      this.#cols > 10
+        ? `\n${''.padStart(maxLength, ' ')}  ${
+          Array.from({ length: Math.ceil(this.#cols / 10) }).map((_, i) => `${i % 10}         `).join('').slice(0, this.#cols)
+        }`
+        : ''
+    }`;
     return `rows: ${this.#rows}, cols: ${this.#cols}\n${
       rows.map((row, r) =>
         `${(this.system === CoordSystem.Rc ? r : this.#rows - r - 1).toString().padStart(maxLength, ' ')}: ${
           row.map((cell, c) => this.inspector?.(cell, this.#unsafeIndexToCoord(r * this.#cols + c)) ?? cell).join('')
         }`
       ).join('\n')
-    }`;
+    }\n${footer}`;
   }
 }
