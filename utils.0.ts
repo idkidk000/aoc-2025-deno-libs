@@ -1,4 +1,4 @@
-import { Point2DLike } from './point2d.0.ts';
+import { Point2DLike } from '@/point2d.0.ts';
 
 export interface Line {
   a: Point2DLike;
@@ -86,5 +86,11 @@ export abstract class Utils {
       grouped.get(key)?.push(item);
     }
     return grouped;
+  }
+  static omit<Item extends object, Key extends Extract<keyof Item, string>, Return extends Omit<Item, Key>>(item: Item, keys: Key[]): Return {
+    return Object.fromEntries(Object.entries(item).filter(([key]) => !keys.includes(key as Key))) as Return;
+  }
+  static pick<Item extends object, Key extends Extract<keyof Item, string>, Return extends Pick<Item, Key>>(item: Item, keys: Key[]): Return {
+    return Object.fromEntries(Object.entries(item).filter(([key]) => keys.includes(key as Key))) as Return;
   }
 }

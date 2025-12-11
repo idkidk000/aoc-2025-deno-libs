@@ -1,7 +1,8 @@
+import { Logger } from '@/logger.0.ts';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { argv } from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { Logger } from './logger.0.ts';
 
 abstract class ArgParser {
   #logger: Logger;
@@ -27,7 +28,7 @@ abstract class ArgParser {
 type ArgParserDefaults = { fileName: string; logLevel: number; part: number };
 
 function parseArgs(): Partial<ArgParserDefaults> {
-  const args = [...Deno.args].toReversed();
+  const args = [...argv.slice(2)].toReversed();
   const parsed: Partial<ArgParserDefaults> = {};
   while (args.length) {
     const key = args.pop();

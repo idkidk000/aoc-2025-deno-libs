@@ -1,41 +1,41 @@
-# Advent of Code 2025 Deno Libs
+## Advent of Code 2025 Deno Libs
 
-### `AocArgParser`, `EcArgParser`
+### [`AocArgParser`, `EcArgParser`](args.1.ts)
 
-You will never guess.
+Challenge-specific implementations of the same abstract base class.
 
-### `BinaryHeap`
+### [`BinaryHeap`](binary-heap.0.ts)
 
 Binary heap with destructive and non-destructive iterators.
 
-### `Counter`
+### [`Counter`, `BigCounter`](counter.1.ts), [`DefaultMap`](default-map.0.ts)
 
-Trivial `Map` wrapper.
+Trivial `Map` wrappers.
 
-### `Deque`
+### [`Deque`](deque.0.ts)
 
 Fast circular array.
 
-### `Grid`
+### [`Grid`](grid.0.ts)
 
 Advent of Code does seem to like them.
 
-### `HashedMap`, `HashedSet`
+### [`HashedMap`](hashed-map.0.ts), [`HashedSet`](hashed-set.0.ts)
 
-`Map` wrappers. Both require a `hasher` function. Hash is stored in the `Map`'s `key`. Original key is stored in the `Map`'s `value`.
+`Map` wrappers. Both require a `hasher` function. Hash is stored in the `Map`'s `key`. Original key is stored in the `Map`'s `value`. `HashedSet` reimplements all of `Set`s functionality but it can be slower.
 
-### `Logger`
+### [`Logger`](logger.0.ts)
 
-You will never guess part 2.
+You will never guess.
 
-### `Mutex`, `Semaphore`
+### [`Mutex`, `Semaphore`](mutex.0.ts)
 
 Simple mutex based on the functionality of `async-mutex`. `Semaphore` is a trivial `Mutex` wrapper.
 
-### `PackedMap`, `PackedSet`
+### [`PackedMap`](packed-map.0.ts), [`PackedSet`](packed-set.0.ts)
 
-`Map` and `Set` wrappers. Both require `packer` and `unpacker` functions.
+Fast `Map` and `Set` wrappers. Both require `packer` and accept an optional `unpacker` function in order to retreive the original keys.
 
-### `Point2D`, `Point3D`
+### [`Point2D`](point2d.0.ts), [`Point3D`](point3d.0.ts)
 
 Also Advent of Code favourites. Class and type-only variants.
