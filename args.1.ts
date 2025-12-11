@@ -1,4 +1,4 @@
-import { Logger } from '@/logger.0.ts';
+import { Logger } from './logger.0.ts';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { argv } from 'node:process';

@@ -1,4 +1,4 @@
-import { Point2DLike } from '@/point2d.0.ts';
+import { Point2DLike } from './point2d.0.ts';
 
 export interface Line {
   a: Point2DLike;
@@ -74,6 +74,7 @@ export abstract class Utils {
   static divMod(value: number, mod: number): [div: number, mod: number] {
     return [Math.floor(value / mod), Utils.modP(value, mod)];
   }
+  /** if `Number.prototype.toFixed()` returned a number */
   static roundTo(value: number, digits = 3): number {
     const multiplier = 10 ** digits;
     return Math.round(value * multiplier) / multiplier;
