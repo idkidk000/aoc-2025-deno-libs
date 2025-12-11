@@ -65,7 +65,7 @@ type LevelName = keyof typeof levels;
 
 const console = new Console({
   colorMode: true,
-  inspectOptions: { breakLength: 300, depth: 10, maxStringLength: 150, numericSeparator: true, sorted: false },
+  inspectOptions: { breakLength: 300, compact: true, depth: 10, maxStringLength: 150, numericSeparator: true, sorted: true },
   stderr,
   stdout,
 });
@@ -102,8 +102,8 @@ export class Logger {
   #log(levelName: LevelName | null, ...message: unknown[]) {
     if (levelName === null) console.log(...message);
     else {
-      const { colour, method, value } = levels[levelName];
-      if (value < this.#levelValue) return;
+      const { colour, method, value: level } = levels[levelName];
+      if (level < this.#levelValue) return;
       const prefix = this.#makePrefix(levelName, colour);
       console[method](prefix, ...message);
     }
@@ -147,7 +147,7 @@ export class Logger {
     this.#log('Error', ...message);
   }
   setLevel(logLevel: LevelName | number) {
-    this.#levelValue = (typeof logLevel === 'number') ? this.#levelValue = logLevel : levels[logLevel].value;
+    this.#levelValue = (typeof logLevel === 'number') ? logLevel : levels[logLevel].value;
   }
   plain(...message: unknown[]) {
     this.#log(null, ...message);
