@@ -9,6 +9,7 @@ export enum GridAxis {
   Horizontal,
   Vertical,
 }
+export type GridRotation = 0 | 1 | 2 | 3;
 export interface GridCoord {
   x: number;
   y: number;
@@ -231,25 +232,22 @@ export class Grid<Item, System extends CoordSystem> {
 
   // local transforms
   /** Mutates this `Grid` instance */
-  rotate(angle: 90 | 180 | 270): this {
-    if (angle === 180) {
-      this.#array.reverse();
-      return this;
-    }
-    if (angle === 90 || angle === 270) {
+  rotate(rotation: GridRotation): this {
+    if (![0, 1, 2, 3].includes(rotation)) throw new Error('invalid rotation value');
+    if (rotation === 1 || rotation === 3) {
       const array = new Array<Item>(this.#array.length);
       for (let r = 0; r < this.#rows; ++r) {
         for (let c = 0; c < this.#cols; ++c) {
           const value = this.#array[this.#unsafeRcToIndex(r, c)];
-          if (angle === 90) array[c * this.#rows + (this.#rows - 1 - r)] = value;
-          else if (angle === 270) array[(this.#cols - 1 - c) * this.#rows + r] = value;
+          if (rotation === 1) array[c * this.#rows + (this.#rows - 1 - r)] = value;
+          else if (rotation === 3) array[(this.#cols - 1 - c) * this.#rows + r] = value;
         }
       }
       this.#array = array;
       [this.#rows, this.#cols] = [this.#cols, this.#rows];
-      return this;
     }
-    throw new Error('invalid rotation angle');
+    if (rotation === 2) this.#array.reverse();
+    return this;
   }
   /** Mutates this `Grid` instance */
   mirror(axis: GridAxis): this {
@@ -298,9 +296,9 @@ export class Grid<Item, System extends CoordSystem> {
 
   // copy transforms
   /** Returns a new `Grid` instance */
-  toRotated(angle: 90 | 180 | 270): Grid<Item, System> {
+  toRotated(rotation: GridRotation): Grid<Item, System> {
     const grid = new Grid(this);
-    return grid.rotate(angle);
+    return grid.rotate(rotation);
   }
   /** Returns a new `Grid` instance */
   toMirrored(axis: GridAxis): Grid<Item, System> {

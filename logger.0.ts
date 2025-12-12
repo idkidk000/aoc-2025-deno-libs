@@ -65,7 +65,7 @@ type LevelName = keyof typeof levels;
 
 const console = new Console({
   colorMode: true,
-  inspectOptions: { breakLength: 300, compact: true, depth: 10, maxStringLength: 150, numericSeparator: true, sorted: true },
+  inspectOptions: { breakLength: 300, compact: true, depth: 10, maxStringLength: 150, numericSeparator: true, sorted: false },
   stderr,
   stdout,
 });
