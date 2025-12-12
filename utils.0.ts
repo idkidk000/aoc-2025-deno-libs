@@ -94,4 +94,13 @@ export abstract class Utils {
   static pick<Item extends object, Key extends Extract<keyof Item, string>, Return extends Pick<Item, Key>>(item: Item, keys: Key[]): Return {
     return Object.fromEntries(Object.entries(item).filter(([key]) => keys.includes(key as Key))) as Return;
   }
+  static binarySearch(lower: number, upper: number, shouldIncrease: (mid: number) => boolean) {
+    while (lower < upper) {
+      const mid = lower + Math.ceil((upper - lower) / 2);
+      const result = shouldIncrease(mid);
+      if (result) lower = mid;
+      else upper = mid - 1;
+    }
+    return lower;
+  }
 }

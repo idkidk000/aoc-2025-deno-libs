@@ -30,7 +30,7 @@ export class Grid<Item, System extends CoordSystem> {
   #cols: number;
   #array: Item[];
   readonly system: System;
-  readonly inspector?: CellInspector<Item>;
+  inspector?: CellInspector<Item>;
   constructor(data: Item[][], system: System, inspector?: CellInspector<Item>);
   constructor(data: GridOptionsWithFill<Item>, system: System, inspector?: CellInspector<Item>);
   constructor(data: GridOptionsWithCells<Item>, system: System, inspector?: CellInspector<Item>);
