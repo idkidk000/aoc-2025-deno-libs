@@ -138,7 +138,6 @@ export class Point2D implements Point2DLike {
         for (let y = -radius; y <= radius; ++y)
           if (constrainer({ x, y })) result.push({ x, y });
       }
-      return result;
     } else {
       const radius2 = constrainer === Offset2D.Circle ? radius ** 2 : constrainer === Offset2D.CirclePlus ? (radius + 0.5) ** 2 : 0;
       for (let x = 0; x <= radius; ++x) {
