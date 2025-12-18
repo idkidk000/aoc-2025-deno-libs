@@ -26,10 +26,12 @@ for (const className of classNames) {
       ? new LinkedList<number>()
       : null;
     if (obj === null) throw new Error(`unhandled className ${className}`);
-    let started = performance.now();
+    let started = Infinity;
     let pass = true;
     switch (testName) {
       case 'pushFront': {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        started = performance.now();
         // i don't have the patience for Array.prototype.unshift
         if (className === 'Array') pass = false;
         if (className === 'Deque') { for (let i = 0; i < count; ++i) (obj as Deque<number>).pushFront(i); }
@@ -37,6 +39,8 @@ for (const className of classNames) {
         break;
       }
       case 'pushBack': {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        started = performance.now();
         if (className === 'Array') { for (let i = 0; i < count; ++i) (obj as Array<number>).push(i); }
         if (className === 'Deque') { for (let i = 0; i < count; ++i) (obj as Deque<number>).pushBack(i); }
         if (className === 'LinkedList') { for (let i = 0; i < count; ++i) (obj as LinkedList<number>).pushBack(i); }
@@ -47,6 +51,7 @@ for (const className of classNames) {
         if (className === 'Array') pass = false;
         if (className === 'Deque') { for (let i = 0; i < count; ++i) (obj as Deque<number>).pushBack(i); }
         if (className === 'LinkedList') { for (let i = 0; i < count; ++i) (obj as LinkedList<number>).pushBack(i); }
+        await new Promise((resolve) => setTimeout(resolve, 500));
         started = performance.now();
         if (className === 'Deque') { for (let i = 0; i < count; ++i) (obj as Deque<number>).popFront(); }
         if (className === 'LinkedList') { for (let i = 0; i < count; ++i) (obj as LinkedList<number>).popFront(); }
@@ -56,6 +61,7 @@ for (const className of classNames) {
         if (className === 'Array') { for (let i = 0; i < count; ++i) (obj as Array<number>).push(i); }
         if (className === 'Deque') { for (let i = 0; i < count; ++i) (obj as Deque<number>).pushBack(i); }
         if (className === 'LinkedList') { for (let i = 0; i < count; ++i) (obj as LinkedList<number>).pushBack(i); }
+        await new Promise((resolve) => setTimeout(resolve, 500));
         started = performance.now();
         if (className === 'Array') { for (let i = 0; i < count; ++i) (obj as Array<number>).pop(); }
         if (className === 'Deque') { for (let i = 0; i < count; ++i) (obj as Deque<number>).popBack(); }
@@ -67,6 +73,7 @@ for (const className of classNames) {
         if (className === 'Array') pass = false;
         if (className === 'Deque') pass = false;
         if (className === 'LinkedList') { for (let i = 0; i < count; ++i) (obj as LinkedList<number>).pushBack(i); }
+        await new Promise((resolve) => setTimeout(resolve, 500));
         started = performance.now();
         // deno-lint-ignore no-non-null-assertion
         if (className === 'LinkedList') { for (let i = 0; i < count; ++i) (obj as LinkedList<number>).delete((obj as LinkedList<number>).front!); }
@@ -77,6 +84,7 @@ for (const className of classNames) {
         if (className === 'Array') pass = false;
         if (className === 'Deque') pass = false;
         if (className === 'LinkedList') (obj as LinkedList<number>).pushBack(1, 2, 3, 4, 5, 6, 7, 8, 9);
+        await new Promise((resolve) => setTimeout(resolve, 500));
         started = performance.now();
         if (className === 'LinkedList') {
           const item = (obj as LinkedList<number>).find((v) => v.data === 5);
