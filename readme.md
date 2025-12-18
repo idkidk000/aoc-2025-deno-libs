@@ -24,6 +24,10 @@ Advent of Code does seem to like them.
 
 `Map` wrappers. Both require a `hasher` function. Hash is stored in the `Map`'s `key`. Original key is stored in the `Map`'s `value`. `HashedSet` reimplements all of `Set`s functionality but it can be slower.
 
+### [`LinkedList`](linked-list.0.ts)
+
+Double linked list with low overhead inserts and deletes.
+
 ### [`Logger`](logger.0.ts)
 
 You will never guess.
