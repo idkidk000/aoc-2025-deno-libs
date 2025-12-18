@@ -29,7 +29,7 @@ export class PackedSet<Key, Packed = string | number | bigint> {
     return new PackedSet(this.packer, this.unpacker, undefined, this.#set.difference(other.#set));
   }
   entries(): SetIterator<[Key, Key]> {
-    if (!this.unpacker) throw new Error('unpacker is required for `entries()` method');
+    if (!this.unpacker) throw new Error('unpacker is required');
     return this.#set.keys().map((packed) => {
       // deno-lint-ignore no-non-null-assertion
       const key = this.unpacker!(packed);
@@ -37,7 +37,7 @@ export class PackedSet<Key, Packed = string | number | bigint> {
     });
   }
   forEach(callback: (value: Key, value2: Key, packedSet: PackedSet<Key, Packed>) => void): void {
-    if (!this.unpacker) throw new Error('unpacker is required for `forEach()` method');
+    if (!this.unpacker) throw new Error('unpacker is required');
     return this.#set.keys().forEach((packed) => {
       // deno-lint-ignore no-non-null-assertion
       const key = this.unpacker!(packed);
@@ -60,7 +60,7 @@ export class PackedSet<Key, Packed = string | number | bigint> {
     return this.#set.isSupersetOf(other.#set);
   }
   keys(): SetIterator<Key> {
-    if (!this.unpacker) throw new Error('unpacker is required for `keys()` method');
+    if (!this.unpacker) throw new Error('unpacker is required');
     return this.#set.keys().map(this.unpacker);
   }
   get size() {
@@ -73,7 +73,7 @@ export class PackedSet<Key, Packed = string | number | bigint> {
     return new PackedSet(this.packer, this.unpacker, undefined, this.#set.union(other.#set));
   }
   values(): SetIterator<Key> {
-    if (!this.unpacker) throw new Error('unpacker is required for `values()` method');
+    if (!this.unpacker) throw new Error('unpacker is required');
     return this.#set.keys().map(this.unpacker);
   }
   packs(): SetIterator<Packed> {

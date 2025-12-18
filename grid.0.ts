@@ -1,5 +1,5 @@
-import { inspect } from 'node:util';
 import { Point2DLike } from './point2d.0.ts';
+import { inspect } from 'node:util';
 
 export enum CoordSystem {
   Rc,
@@ -9,6 +9,7 @@ export enum GridAxis {
   Horizontal,
   Vertical,
 }
+export type GridRotation = 0 | 1 | 2 | 3;
 export interface GridCoord {
   x: number;
   y: number;
@@ -29,7 +30,7 @@ export class Grid<Item, System extends CoordSystem> {
   #cols: number;
   #array: Item[];
   readonly system: System;
-  readonly inspector?: CellInspector<Item>;
+  inspector?: CellInspector<Item>;
   constructor(data: Item[][], system: System, inspector?: CellInspector<Item>);
   constructor(data: GridOptionsWithFill<Item>, system: System, inspector?: CellInspector<Item>);
   constructor(data: GridOptionsWithCells<Item>, system: System, inspector?: CellInspector<Item>);
@@ -231,25 +232,22 @@ export class Grid<Item, System extends CoordSystem> {
 
   // local transforms
   /** Mutates this `Grid` instance */
-  rotate(angle: 90 | 180 | 270): this {
-    if (angle === 180) {
-      this.#array.reverse();
-      return this;
-    }
-    if (angle === 90 || angle === 270) {
+  rotate(rotation: GridRotation): this {
+    if (![0, 1, 2, 3].includes(rotation)) throw new Error('invalid rotation value');
+    if (rotation === 1 || rotation === 3) {
       const array = new Array<Item>(this.#array.length);
       for (let r = 0; r < this.#rows; ++r) {
         for (let c = 0; c < this.#cols; ++c) {
           const value = this.#array[this.#unsafeRcToIndex(r, c)];
-          if (angle === 90) array[c * this.#rows + (this.#rows - 1 - r)] = value;
-          else if (angle === 270) array[(this.#cols - 1 - c) * this.#rows + r] = value;
+          if (rotation === 1) array[c * this.#rows + (this.#rows - 1 - r)] = value;
+          else if (rotation === 3) array[(this.#cols - 1 - c) * this.#rows + r] = value;
         }
       }
       this.#array = array;
       [this.#rows, this.#cols] = [this.#cols, this.#rows];
-      return this;
     }
-    throw new Error('invalid rotation angle');
+    if (rotation === 2) this.#array.reverse();
+    return this;
   }
   /** Mutates this `Grid` instance */
   mirror(axis: GridAxis): this {
@@ -298,9 +296,9 @@ export class Grid<Item, System extends CoordSystem> {
 
   // copy transforms
   /** Returns a new `Grid` instance */
-  toRotated(angle: 90 | 180 | 270): Grid<Item, System> {
+  toRotated(rotation: GridRotation): Grid<Item, System> {
     const grid = new Grid(this);
-    return grid.rotate(angle);
+    return grid.rotate(rotation);
   }
   /** Returns a new `Grid` instance */
   toMirrored(axis: GridAxis): Grid<Item, System> {
@@ -319,12 +317,19 @@ export class Grid<Item, System extends CoordSystem> {
     const maxLength = Math.ceil(Math.log10(this.#rows));
     const rows = new Array<Item[]>(this.#rows);
     for (let r = 0; r < this.#rows; ++r) rows[r] = this.#array.slice(r * this.#cols, (r + 1) * this.#cols);
+    const footer = `${''.padStart(maxLength, ' ')}  ${'0123456789'.repeat(Math.ceil(this.#cols / 10)).slice(0, this.#cols)}${
+      this.#cols > 10
+        ? `\n${''.padStart(maxLength, ' ')}  ${
+          Array.from({ length: Math.ceil(this.#cols / 10) }).map((_, i) => `${i % 10}         `).join('').slice(0, this.#cols)
+        }`
+        : ''
+    }`;
     return `rows: ${this.#rows}, cols: ${this.#cols}\n${
       rows.map((row, r) =>
         `${(this.system === CoordSystem.Rc ? r : this.#rows - r - 1).toString().padStart(maxLength, ' ')}: ${
           row.map((cell, c) => this.inspector?.(cell, this.#unsafeIndexToCoord(r * this.#cols + c)) ?? cell).join('')
         }`
       ).join('\n')
-    }`;
+    }\n${footer}`;
   }
 }

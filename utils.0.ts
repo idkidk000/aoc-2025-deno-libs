@@ -74,6 +74,7 @@ export abstract class Utils {
   static divMod(value: number, mod: number): [div: number, mod: number] {
     return [Math.floor(value / mod), Utils.modP(value, mod)];
   }
+  /** if `Number.prototype.toFixed()` returned a number */
   static roundTo(value: number, digits = 3): number {
     const multiplier = 10 ** digits;
     return Math.round(value * multiplier) / multiplier;
@@ -86,5 +87,20 @@ export abstract class Utils {
       grouped.get(key)?.push(item);
     }
     return grouped;
+  }
+  static omit<Item extends object, Key extends Extract<keyof Item, string>, Return extends Omit<Item, Key>>(item: Item, keys: Key[]): Return {
+    return Object.fromEntries(Object.entries(item).filter(([key]) => !keys.includes(key as Key))) as Return;
+  }
+  static pick<Item extends object, Key extends Extract<keyof Item, string>, Return extends Pick<Item, Key>>(item: Item, keys: Key[]): Return {
+    return Object.fromEntries(Object.entries(item).filter(([key]) => keys.includes(key as Key))) as Return;
+  }
+  static binarySearch(lower: number, upper: number, shouldIncrease: (mid: number) => boolean) {
+    while (lower < upper) {
+      const mid = lower + Math.ceil((upper - lower) / 2);
+      const result = shouldIncrease(mid);
+      if (result) lower = mid;
+      else upper = mid - 1;
+    }
+    return lower;
   }
 }

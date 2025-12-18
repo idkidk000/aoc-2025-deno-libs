@@ -1,7 +1,8 @@
+import { Logger } from './logger.0.ts';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { argv } from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { Logger } from './logger.0.ts';
 
 const BASE_DEFAULTS = {
   fileName: 'input.txt',
@@ -20,7 +21,7 @@ export function parseArgs(importMetaUrl: string, defaults?: Partial<Defaults>) {
     ...BASE_DEFAULTS,
     ...defaults,
   };
-  const raw = [...Deno.args];
+  const raw = [...argv.slice(2)];
   while (raw.length) {
     const key = raw.shift();
     if (typeof key === 'undefined') break;
