@@ -163,4 +163,7 @@ export class Logger {
   clear(): void {
     console.clear();
   }
+  get level(): number {
+    return this.#levelValue;
+  }
 }
